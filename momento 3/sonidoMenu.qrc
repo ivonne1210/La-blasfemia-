@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../../la blasfemia/momento 2/sprites/menuS.mp3</file>
+    </qresource>
+</RCC>
