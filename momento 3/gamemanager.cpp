@@ -16,10 +16,10 @@ GameManager::GameManager(QWidget *parent)
     setCentralWidget(view);
 
     // Start with menu
-    MenuScene *menu = new MenuScene(this);
+    MenuScene *menu = new MenuScene();
     connect(menu, &MenuScene::startCampaignRequested, this, [this](){
         // Start Level1 when menu requests campaign start
-        Level1Scene *l1 = new Level1Scene(this);
+        Level1Scene *l1 = new Level1Scene();
         setGameScene(l1);
     });
     setGameScene(menu);
@@ -33,12 +33,20 @@ GameManager::~GameManager()
 void GameManager::setGameScene(GameScene *scene)
 {
     if (!scene) return;
+
     if (currentScene) {
         view->setScene(nullptr);
         delete currentScene;
     }
+
     currentScene = scene;
     view->setScene(scene);
-    // Give focus to view so scenes receive key events
+
+    // 🔥 Si la escena es Level1, le pasamos la vista
+    if (auto l1 = dynamic_cast<Level1Scene*>(scene)) {
+        l1->setView(view);
+    }
+
     view->setFocus();
 }
+

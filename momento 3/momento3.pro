@@ -8,6 +8,7 @@ SOURCES += \
         entity.cpp \
         gamemanager.cpp \
         gamescene.cpp \
+        item.cpp \
         level1scene.cpp \
         main.cpp \
         menuscene.cpp \
@@ -18,6 +19,7 @@ HEADERS += \
     entity.h \
     gamemanager.h \
     gamescene.h \
+    item.h \
     level1scene.h \
     menuscene.h \
     player.h

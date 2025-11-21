@@ -6,40 +6,65 @@
 Level1Scene::Level1Scene(QObject *parent)
     : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
 {
-    setSceneRect(0,0,800,600);
+    QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back1.png");
+    setSceneRect(0, 0, map.width(), map.height());
     setupScene();
 
     connect(tickTimer, &QTimer::timeout, this, &Level1Scene::onTick);
-    tickTimer->start(16); // ~60 FPS
+    tickTimer->start(16);
     lastTimeMs = QDateTime::currentMSecsSinceEpoch();
 }
 
 Level1Scene::~Level1Scene()
 {
     tickTimer->stop();
-    // Qt will delete items added to the scene automatically when scene is deleted
 }
 
 void Level1Scene::setupScene()
 {
-    // Background placeholder
-    QGraphicsRectItem *bg = addRect(sceneRect(), QPen(Qt::NoPen), QBrush(Qt::darkGray));
-    bg->setZValue(-10);
+    QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back1.png");
+    QGraphicsPixmapItem* mapItem = addPixmap(map);
+    mapItem->setPos(0, 0);
+    mapItem->setZValue(-100);
 
-    // Add a simple title/hint
-    addText("Nivel 1: Redención en la Tierra")->setPos(10,10);
-
-    // Create player and add to scene center
     player = new Player();
     addItem(player);
     player->setPos(sceneRect().width()/2, sceneRect().height()/2);
     entities.push_back(player);
 
-    // Example static obstacle (placeholder)
-    QGraphicsRectItem *obs = addRect(200, 200, 120, 40, QPen(), QBrush(Qt::gray));
-    obs->setZValue(1);
+    Item* item1 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item1.png");
+    item1->setPos(50, 500);
+    addItem(item1);
+    Item* item2 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item2.png");
+    item2->setPos(100, 500);
+    addItem(item2);
+    Item* item3 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item3.png");
+    item3->setPos(150, 500);
+    addItem(item3);
+    Item* item4 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item4.png");
+    item4->setPos(200, 500);
+    addItem(item4);
+    Item* item5 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item5.png");
+    item5->setPos(250, 500);
+    addItem(item5);
 
-    // Later: spawn enemies, crucifixes, etc.
+    items.push_back(item1);
+    items.push_back(item2);
+    items.push_back(item3);
+    items.push_back(item4);
+    items.push_back(item5);
+
+    QPainterPath backPath;
+    backPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBack = addPath(backPath, QPen(Qt::black), QBrush(Qt::darkGray));
+    healthBack->setZValue(1000);
+
+    QPainterPath barPath;
+    barPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
+    healthBar->setZValue(1001);
 }
 
 void Level1Scene::onEnter() { /* nothing now */ }
@@ -51,8 +76,13 @@ void Level1Scene::onTick()
     qreal dt = (now - lastTimeMs) / 1000.0; // seconds
     lastTimeMs = now;
 
+    if (viewRef && player) {
+        viewRef->centerOn(player);
+    }
+
     updateEntities(dt);
-    // refresh view bounding
+    updateHealthBar();
+    updateHud();
     update();
 }
 
@@ -63,17 +93,13 @@ void Level1Scene::updateEntities(qreal dt)
 
         if (e == player) {
 
-            // obtener posición actual
             QPointF pos = player->pos();
 
-            // obtener límites del mapa
-            QRectF bounds = sceneRect();
+          QRectF bounds(0, 385, sceneRect().width(), sceneRect().height() - 385);
 
-            // tamaño del sprite del jugador
             qreal halfW = player->pixmap().width() / 2.0;
             qreal halfH = player->pixmap().height() / 2.0;
 
-            // ❗ asegurarse de que el jugador NO salga del mapa
             if (pos.x() < bounds.left() + halfW)
                 pos.setX(bounds.left() + halfW);
 
@@ -86,11 +112,21 @@ void Level1Scene::updateEntities(qreal dt)
             if (pos.y() > bounds.bottom() - halfH)
                 pos.setY(bounds.bottom() - halfH);
 
-            // aplicar posición corregida
             player->setPos(pos);
         }
     }
-    // collisions and game logic will be added here
+    for (Item* it : items)
+    {
+        if (player->collidesWithItem(it))
+        {
+            qDebug() << "Jugador recogió un ítem!";
+
+            removeItem(it);
+            items.erase(std::remove(items.begin(), items.end(), it), items.end());
+            delete it;
+            break;
+        }
+    }
 }
 
 void Level1Scene::keyPressEvent(QKeyEvent *event)
@@ -146,3 +182,35 @@ void Level1Scene::keyReleaseEvent(QKeyEvent *event)
         QGraphicsScene::keyReleaseEvent(event);
     }
 }
+
+void Level1Scene::setView(QGraphicsView *v)
+{
+    viewRef = v;
+}
+
+void Level1Scene::updateHealthBar()
+{
+    if (!player || !healthBar) return;
+
+    float maxWidth = 200.0f;
+    float ratio = player->health() / 100.0f;
+    if (ratio < 0) ratio = 0;
+
+    QPainterPath barPath;
+    barPath.addRoundedRect(0, 0, maxWidth * ratio, 20, 8, 8);
+    healthBar->setPath(barPath);}
+
+void Level1Scene::updateHud()
+{
+    if (!viewRef || !healthBack || !healthBar) return;
+
+    QPointF topRight = viewRef->mapToScene(viewRef->viewport()->rect().topRight());
+
+    float hudX = topRight.x() - 220;  // margen derecha
+    float hudY = topRight.y() + 20;   // margen arriba
+
+    healthBack->setPos(hudX, hudY);
+    healthBar->setPos(hudX, hudY);
+}
+
+

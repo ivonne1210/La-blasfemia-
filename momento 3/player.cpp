@@ -10,6 +10,7 @@ Player::Player(QGraphicsItem *parent)
     : Actor(parent),
     left(false), right(false), up(false), down(false),
     m_speed(180),
+    m_health(100),
     currentFrame(0)
 {
     // Cargar todos los frames localmente (temporal)
@@ -67,15 +68,15 @@ void Player::updateAnimation()
         lastDirection = 0; // abajo
     }
     else if (up && !down) {
-        startFrame = 3; endFrame = 6; idleFrame = 6;
+        startFrame = 3; endFrame = 5; idleFrame = 3;
         lastDirection = 1; // arriba
     }
     else if (right && !left) {
-        startFrame = 7; endFrame = 9; idleFrame = 7;
+        startFrame = 6; endFrame = 8; idleFrame = 6;
         lastDirection = 2; // derecha
     }
     else if (left && !right) {
-        startFrame = 10; endFrame = 11; idleFrame = 10;
+        startFrame = 9; endFrame = 11; idleFrame = 9;
         lastDirection = 3; // izquierda
     }
     else {
@@ -111,5 +112,11 @@ void Player::updateAnimation()
     setPixmap(walkFrames[currentFrame]);
     setOffset(-pixmap().width()/2, -pixmap().height()/2);
 }
+
+void Player::takeDamage(int amount) {
+    m_health -= amount;
+    if (m_health < 0) m_health = 0;
+}
+
 
 
