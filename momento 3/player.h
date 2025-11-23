@@ -21,6 +21,9 @@ public:
     int health() const { return m_health; }
     void setHealth(int h) { m_health = h; }
     void takeDamage(int amount);
+    void storeLastSafePos();               // guardar posición previa
+    void restoreLastSafePos();
+
 
 private:
     bool left, right, up, down;
@@ -32,4 +35,8 @@ private:
     QTimer *animTimer;
 
     void updateAnimation();
+    float invincibleTime;
+    float blinkTimer;
+    bool blinking;
+    QPointF lastSafePos;
 };

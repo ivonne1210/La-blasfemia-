@@ -5,6 +5,7 @@ QT += multimedia
 
 SOURCES += \
         actor.cpp \
+        enemy.cpp \
         entity.cpp \
         gamemanager.cpp \
         gamescene.cpp \
@@ -16,6 +17,7 @@ SOURCES += \
 
 HEADERS += \
     actor.h \
+    enemy.h \
     entity.h \
     gamemanager.h \
     gamescene.h \

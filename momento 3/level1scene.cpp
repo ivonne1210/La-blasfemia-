@@ -1,7 +1,10 @@
 #include "level1scene.h"
+#include "enemy.h"
 #include <QKeyEvent>
 #include <QDateTime>
 #include <QGraphicsRectItem>
+#include <QRandomGenerator>
+
 
 Level1Scene::Level1Scene(QObject *parent)
     : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
@@ -65,6 +68,7 @@ void Level1Scene::setupScene()
 
     healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
     healthBar->setZValue(1001);
+    spawnRandomEnemies(3);
 }
 
 void Level1Scene::onEnter() { /* nothing now */ }
@@ -95,7 +99,7 @@ void Level1Scene::updateEntities(qreal dt)
 
             QPointF pos = player->pos();
 
-          QRectF bounds(0, 385, sceneRect().width(), sceneRect().height() - 385);
+            QRectF bounds(0, 385, sceneRect().width(), sceneRect().height() - 385);
 
             qreal halfW = player->pixmap().width() / 2.0;
             qreal halfH = player->pixmap().height() / 2.0;
@@ -127,6 +131,22 @@ void Level1Scene::updateEntities(qreal dt)
             break;
         }
     }
+
+    // --- ENEMIGOS: DETECTOR DE DAÑO Y RETROCESO ---
+    for (Entity *ent : entities)
+    {
+        Enemy *enemy = dynamic_cast<Enemy*>(ent);
+        if (!enemy) continue;
+
+        if (player->collidesWithItem(enemy))
+        {
+            player->takeDamage(enemy->getDamage());
+
+            // Retrocede al jugador
+            player->restoreLastSafePos();
+        }
+    }
+
 }
 
 void Level1Scene::keyPressEvent(QKeyEvent *event)
@@ -213,4 +233,24 @@ void Level1Scene::updateHud()
     healthBar->setPos(hudX, hudY);
 }
 
+void Level1Scene::spawnRandomEnemies(int count)
+{
+    QRectF playArea(0, 385, sceneRect().width(), sceneRect().height() - 385);
+    auto *rng = QRandomGenerator::global();
+
+    for (int i = 0; i < count; i++)
+    {
+        // Punto inicial aleatorio
+        qreal x1 = playArea.left() + rng->bounded(int(playArea.width()));
+        qreal y1 = playArea.top()  + rng->bounded(int(playArea.height()));
+
+        // Punto final aleatorio
+        qreal x2 = playArea.left() + rng->bounded(int(playArea.width()));
+        qreal y2 = playArea.top()  + rng->bounded(int(playArea.height()));
+
+        Enemy *e = new Enemy(QPointF(x1, y1), QPointF(x2, y2), 60, 10);
+        addItem(e);
+        entities.push_back(e);
+    }
+}
 

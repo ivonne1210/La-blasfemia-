@@ -11,7 +11,8 @@ Player::Player(QGraphicsItem *parent)
     left(false), right(false), up(false), down(false),
     m_speed(180),
     m_health(100),
-    currentFrame(0)
+    currentFrame(0),
+    invincibleTime(0)
 {
     // Cargar todos los frames localmente (temporal)
     for (int i = 0; i < 12; i++) {
@@ -48,6 +49,24 @@ void Player::updateEntity(qreal dt)
 
     setVelocity(vel);
     Actor::updateEntity(dt);
+    if (invincibleTime > 0)
+    {
+        invincibleTime -= dt;
+        blinkTimer += dt;
+
+        if (blinkTimer > 0.1f) {
+            blinkTimer = 0;
+            setVisible(!isVisible());
+        }
+
+        if (invincibleTime <= 0) {
+            setVisible(true);
+            blinking = false;
+        }
+    }
+
+    // siempre guardar posición segura
+    storeLastSafePos();
 }
 
 void Player::moveLeft(bool on) { left = on; }
@@ -113,9 +132,27 @@ void Player::updateAnimation()
     setOffset(-pixmap().width()/2, -pixmap().height()/2);
 }
 
-void Player::takeDamage(int amount) {
-    m_health -= amount;
+void Player::takeDamage(int dmg)
+{
+    if (invincibleTime > 0) return;  // aún invencible
+
+    m_health -= dmg;
     if (m_health < 0) m_health = 0;
+
+    invincibleTime = 0.6f; // 600ms sin recibir más daño
+    blinking = true;
+    blinkTimer = 0;
+    qDebug() << "Jugador recibe daño =" << dmg << " Salud =" << m_health;
+}
+
+void Player::storeLastSafePos()
+{
+    lastSafePos = pos();
+}
+
+void Player::restoreLastSafePos()
+{
+    setPos(lastSafePos);
 }
 
 

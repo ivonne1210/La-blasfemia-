@@ -41,5 +41,6 @@ private:
     void updateEntities(qreal dt);
     void updateHealthBar();
     void updateHud();
+    void spawnRandomEnemies(int count);
 
 };
