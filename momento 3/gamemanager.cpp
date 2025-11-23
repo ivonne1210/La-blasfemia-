@@ -42,11 +42,22 @@ void GameManager::setGameScene(GameScene *scene)
     currentScene = scene;
     view->setScene(scene);
 
-    // 🔥 Si la escena es Level1, le pasamos la vista
+    // Si es level 1 → le pasamos la vista y conectamos el "levelCompleted"
     if (auto l1 = dynamic_cast<Level1Scene*>(scene)) {
         l1->setView(view);
+
+        // 🔥 CUANDO LEVEL1 Termine → cargamos LEVEL2
+        connect(l1, &Level1Scene::levelCompleted, this, [this]() {
+            loadLevel2();
+        });
     }
 
     view->setFocus();
 }
 
+void GameManager::loadLevel2()
+{
+    // Aquí cargas tu escena del nivel 2
+    Level2Scene *lvl2 = new Level2Scene();
+    setGameScene(lvl2);
+}

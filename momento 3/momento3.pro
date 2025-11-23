@@ -4,6 +4,7 @@ QT += core gui widgets
 QT += multimedia
 
 SOURCES += \
+        Level2Scene.cpp \
         actor.cpp \
         enemy.cpp \
         entity.cpp \
@@ -16,6 +17,7 @@ SOURCES += \
         player.cpp
 
 HEADERS += \
+    Level2Scene.h \
     actor.h \
     enemy.h \
     entity.h \

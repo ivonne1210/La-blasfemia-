@@ -5,7 +5,6 @@
 #include <QGraphicsRectItem>
 #include <QRandomGenerator>
 
-
 Level1Scene::Level1Scene(QObject *parent)
     : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
 {
@@ -32,23 +31,23 @@ void Level1Scene::setupScene()
 
     player = new Player();
     addItem(player);
-    player->setPos(sceneRect().width()/2, sceneRect().height()/2);
+    player->setPos(740, 430);
     entities.push_back(player);
 
     Item* item1 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item1.png");
     item1->setPos(50, 500);
     addItem(item1);
     Item* item2 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item2.png");
-    item2->setPos(100, 500);
+    item2->setPos(50, 950);
     addItem(item2);
     Item* item3 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item3.png");
-    item3->setPos(150, 500);
+    item3->setPos(1450, 500);
     addItem(item3);
     Item* item4 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item4.png");
-    item4->setPos(200, 500);
+    item4->setPos(1450, 950);
     addItem(item4);
     Item* item5 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/item5.png");
-    item5->setPos(250, 500);
+    item5->setPos(720, 950);
     addItem(item5);
 
     items.push_back(item1);
@@ -68,7 +67,21 @@ void Level1Scene::setupScene()
 
     healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
     healthBar->setZValue(1001);
-    spawnRandomEnemies(3);
+
+    spawnRandomEnemies(340, 487,340,800,100);
+    spawnRandomEnemies(80, 568,266,568,75);
+    spawnRandomEnemies(266, 720,80,720,150);
+
+    spawnRandomEnemies(539,520,539,780,75);
+    spawnRandomEnemies(950,520,950,780,75);
+    spawnRandomEnemies(600, 650,890,650,100);
+
+    spawnRandomEnemies(200, 900, 680,900,150);
+    spawnRandomEnemies(1200, 900,720,900,150);
+
+    spawnRandomEnemies(1200, 487,1200,800,100);
+    spawnRandomEnemies(1300, 568,1480,568,75);
+    spawnRandomEnemies(1480, 720,1300,720,150);
 }
 
 void Level1Scene::onEnter() { /* nothing now */ }
@@ -76,6 +89,7 @@ void Level1Scene::onExit() { /* stop timers or sounds if any */ }
 
 void Level1Scene::onTick()
 {
+    if (gameOver) return;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     qreal dt = (now - lastTimeMs) / 1000.0; // seconds
     lastTimeMs = now;
@@ -128,6 +142,10 @@ void Level1Scene::updateEntities(qreal dt)
             removeItem(it);
             items.erase(std::remove(items.begin(), items.end(), it), items.end());
             delete it;
+            if (!portalActive && items.empty())
+            {
+                createPortalEffect();
+            }
             break;
         }
     }
@@ -142,8 +160,20 @@ void Level1Scene::updateEntities(qreal dt)
         {
             player->takeDamage(enemy->getDamage());
 
-            // Retrocede al jugador
-            player->restoreLastSafePos();
+            if(player->health() <= 0 && !gameOver){
+                triggerGameOver();
+                return; // Detener actualizaciones
+            }
+        }
+    }
+
+    if (portalActive && portalEffect)
+    {
+        if (player->collidesWithItem(portalEffect))
+        {
+            qDebug() << "Jugador entró al portal. Siguiente nivel!";
+            goToNextLevel();
+            return;
         }
     }
 
@@ -153,6 +183,7 @@ void Level1Scene::keyPressEvent(QKeyEvent *event)
 {
     if (!player) return;
     if (event->isAutoRepeat()) return;
+    if (gameOver) return;
 
     switch (event->key()) {
     case Qt::Key_Left:
@@ -180,6 +211,7 @@ void Level1Scene::keyReleaseEvent(QKeyEvent *event)
 {
     if (!player) return;
     if (event->isAutoRepeat()) return;
+    if (gameOver) return;
 
     switch (event->key()) {
     case Qt::Key_Left:
@@ -233,24 +265,53 @@ void Level1Scene::updateHud()
     healthBar->setPos(hudX, hudY);
 }
 
-void Level1Scene::spawnRandomEnemies(int count)
+void Level1Scene::spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel)
 {
-    QRectF playArea(0, 385, sceneRect().width(), sceneRect().height() - 385);
-    auto *rng = QRandomGenerator::global();
-
-    for (int i = 0; i < count; i++)
-    {
-        // Punto inicial aleatorio
-        qreal x1 = playArea.left() + rng->bounded(int(playArea.width()));
-        qreal y1 = playArea.top()  + rng->bounded(int(playArea.height()));
-
-        // Punto final aleatorio
-        qreal x2 = playArea.left() + rng->bounded(int(playArea.width()));
-        qreal y2 = playArea.top()  + rng->bounded(int(playArea.height()));
-
-        Enemy *e = new Enemy(QPointF(x1, y1), QPointF(x2, y2), 60, 10);
-        addItem(e);
-        entities.push_back(e);
-    }
+    Enemy *e = new Enemy(QPointF(starX, starY), QPointF(endX, endY), vel, 10);
+    addItem(e);
+    entities.push_back(e);
 }
 
+void Level1Scene::triggerGameOver()
+{
+    gameOver = true;
+
+    tickTimer->stop();  // Detener actualizaciones
+
+    // Crear texto "GAME OVER"
+    gameOverText = new QGraphicsTextItem("GAME OVER");
+    gameOverText->setDefaultTextColor(QColor(132,41,30));
+    gameOverText->setFont(QFont("Old English Text MT", 64, QFont::Bold));
+
+    // Centrar el texto respecto a la cámara
+    QPointF center = viewRef->mapToScene(
+        viewRef->viewport()->rect().center()
+        );
+
+    gameOverText->setPos(center.x() - 300, center.y() - 100);
+    gameOverText->setZValue(9999);
+
+    addItem(gameOverText);
+}
+
+void Level1Scene::createPortalEffect()
+{
+    portalActive = true;
+
+    // Cargar sprite del resplandor (pon uno tú)
+    QPixmap glow("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/portal.png");
+    glow = glow.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    portalEffect = new QGraphicsPixmapItem(glow);
+    portalEffect->setZValue(9000);
+
+    // Colocarlo donde aparece el jugador
+    portalEffect->setPos(620, 280);
+
+    addItem(portalEffect);
+}
+
+void Level1Scene::goToNextLevel()
+{
+    tickTimer->stop();
+    emit levelCompleted();    // NOTIFICAMOS AL MANAGER
+}

@@ -10,6 +10,9 @@
 class Level1Scene : public GameScene
 {
     Q_OBJECT
+signals:
+    void levelCompleted();
+
 public:
     explicit Level1Scene(QObject *parent = nullptr);
     QGraphicsView *viewRef = nullptr;
@@ -41,6 +44,13 @@ private:
     void updateEntities(qreal dt);
     void updateHealthBar();
     void updateHud();
-    void spawnRandomEnemies(int count);
+    void spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel);
+    bool gameOver = false;
+    QGraphicsTextItem* gameOverText = nullptr;
+    void triggerGameOver();
+    bool portalActive = false;
+    QGraphicsPixmapItem* portalEffect = nullptr;
+    void createPortalEffect();
+    void goToNextLevel();
 
 };

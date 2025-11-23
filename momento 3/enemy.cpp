@@ -16,7 +16,7 @@ Enemy::Enemy(QPointF start, QPointF end, qreal speed, int dmg, QGraphicsItem *pa
         QString path =
             QString("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/enemy%1.png").arg(i);
         QPixmap frame(path);
-        frame = frame.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        frame = frame.scaled(180, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         frames.push_back(frame);
     }
 

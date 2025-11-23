@@ -2,6 +2,7 @@
 #include <QMainWindow>
 #include <QGraphicsView>
 #include "gamescene.h"
+#include "level2scene.h"
 
 class GameManager : public QMainWindow
 {
@@ -19,4 +20,5 @@ signals:
 private:
     QGraphicsView *view;
     GameScene *currentScene;
+    void loadLevel2();
 };
