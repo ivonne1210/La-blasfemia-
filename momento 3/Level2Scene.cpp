@@ -1,26 +1,268 @@
 #include "level2scene.h"
+#include "enemy.h"
+#include <QKeyEvent>
+#include <QDateTime>
 #include <QGraphicsRectItem>
-#include <QFont>
+#include <QRandomGenerator>
 
 Level2Scene::Level2Scene(QObject *parent)
-    : GameScene(parent)
+    : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
 {
-    // Fondo negro
-    setSceneRect(0, 0, 900, 700);
-    auto *bg = addRect(sceneRect(), QPen(Qt::NoPen), QBrush(Qt::black));
-    bg->setZValue(-10);
+    QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back1.png");
+    setSceneRect(0, 0, map.width(), map.height());
+    setupScene();
 
-    // Texto de nivel 2
-    label = addText("NIVEL 2", QFont("Arial", 40, QFont::Bold));
-    label->setDefaultTextColor(Qt::white);
-
-    // Centrar texto
-    label->setPos(
-        sceneRect().width()/2 - label->boundingRect().width()/2,
-        sceneRect().height()/2 - label->boundingRect().height()/2
-        );
+    connect(tickTimer, &QTimer::timeout, this, &Level2Scene::onTick);
+    tickTimer->start(16);
+    lastTimeMs = QDateTime::currentMSecsSinceEpoch();
 }
 
 Level2Scene::~Level2Scene()
 {
+    tickTimer->stop();
+}
+
+void Level2Scene::setupScene()
+{
+    // === CARGAR EL FONDO ===
+    QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back2.png");
+
+    if (map.isNull()) {
+        setBackgroundBrush(Qt::black);
+    }
+
+    // Ajustar tamaño de la escena AL TAMAÑO DEL PNG
+    setSceneRect(0, 0, map.width(), map.height());
+
+    // === CREAR EL ÚNICO ITEM DE FONDO ===
+    background = new QGraphicsPixmapItem(map);
+    background->setZValue(-100);
+    background->setPos(0, 0);
+    addItem(background);
+
+    player = new Player2();
+    addItem(player);
+    player->setPos(525, 765);
+    entities.push_back(player);
+
+    // --- Música de fondo ---
+    musicPlayer = new QMediaPlayer(this);
+    audioOutput = new QAudioOutput(this);
+    musicPlayer->setAudioOutput(audioOutput);
+
+    musicPlayer->setSource(QUrl::fromLocalFile(
+        "C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/Lvl1S.mp3"
+        ));
+
+    audioOutput->setVolume(1);
+    musicPlayer->setLoops(QMediaPlayer::Infinite);
+    musicPlayer->play();
+}
+
+void Level2Scene::onEnter() { }
+void Level2Scene::onExit() {}
+
+void Level2Scene::onTick()
+{
+    if (gameOver) return;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    qreal dt = (now - lastTimeMs) / 1000.0;
+    lastTimeMs = now;
+
+    if (viewRef && player) {
+        viewRef->centerOn(player);
+    }
+
+    updateEntities(dt);
+    updateHealthBar();
+    updateHud();
+    update();
+}
+
+void Level2Scene::updateEntities(qreal dt)
+{
+    for (Entity* e : entities) {
+        if (e) e->updateEntity(dt);
+
+        if (e == player) {
+
+            QPointF pos = player->pos();
+
+            QRectF bounds(0, 385, sceneRect().width(), sceneRect().height() - 385);
+
+            qreal halfW = player->pixmap().width() / 2.0;
+            qreal halfH = 0;
+
+            if (pos.x() < bounds.left() + halfW)
+                pos.setX(bounds.left() + halfW);
+
+            if (pos.x() > bounds.right() - halfW)
+                pos.setX(bounds.right() - halfW);
+
+            if (pos.y() < bounds.top() + halfH)
+                pos.setY(halfH);
+
+            if (pos.y() > bounds.bottom() - halfH)
+                pos.setY(halfH);
+
+            player->setPos(pos);
+        }
+    }
+    for (Item* it : items)
+    {
+        if (player->collidesWithItem(it))
+        {
+            qDebug() << "Jugador recogió un ítem!";
+
+            removeItem(it);
+            items.erase(std::remove(items.begin(), items.end(), it), items.end());
+            delete it;
+            break;
+        }
+    }
+
+    for (Entity *ent : entities)
+    {
+        Enemy *enemy = dynamic_cast<Enemy*>(ent);
+        if (!enemy) continue;
+
+        if (player->collidesWithItem(enemy))
+        {
+            player->takeDamage(enemy->getDamage());
+
+            if(player->health() <= 0 && !gameOver){
+                triggerGameOver();
+                return;
+            }
+        }
+    }
+}
+
+void Level2Scene::keyPressEvent(QKeyEvent *event)
+{
+    if (!player) return;
+    if (event->isAutoRepeat()) return;
+    if (gameOver) return;
+
+    switch (event->key()) {
+    case Qt::Key_Left:
+    case Qt::Key_A:
+        player->moveLeft(true);
+        break;
+    case Qt::Key_Right:
+    case Qt::Key_D:
+        player->moveRight(true);
+        break;
+    case Qt::Key_Up:
+    case Qt::Key_W:
+        player->moveUp(true);
+        break;
+    case Qt::Key_Down:
+    case Qt::Key_S:
+        player->moveDown(false);
+        break;
+    case Qt::Key_F:
+        player->defense(true);
+        break;
+    default:
+        QGraphicsScene::keyPressEvent(event);
+    }
+}
+
+void Level2Scene::keyReleaseEvent(QKeyEvent *event)
+{
+    if (!player) return;
+    if (event->isAutoRepeat()) return;
+    if (gameOver) return;
+
+    switch (event->key()) {
+    case Qt::Key_Left:
+    case Qt::Key_A:
+        player->moveLeft(false);
+        break;
+    case Qt::Key_Right:
+    case Qt::Key_D:
+        player->moveRight(false);
+        break;
+    case Qt::Key_Up:
+    case Qt::Key_W:
+        player->moveUp(false);
+        break;
+    case Qt::Key_Down:
+    case Qt::Key_S:
+        player->moveDown(false);
+        break;
+    case Qt::Key_F:
+        player->defense(false);
+        break;
+    default:
+        QGraphicsScene::keyReleaseEvent(event);
+    }
+}
+
+void Level2Scene::setView(QGraphicsView *v)
+{
+    viewRef = v;
+}
+
+void Level2Scene::updateHealthBar()
+{
+    if (!player || !healthBar) return;
+
+    float maxWidth = 200.0f;
+    float ratio = player->health() / 100.0f;
+    if (ratio < 0) ratio = 0;
+
+    QPainterPath barPath;
+    barPath.addRoundedRect(0, 0, maxWidth * ratio, 20, 8, 8);
+    healthBar->setPath(barPath);}
+
+void Level2Scene::updateHud()
+{
+    if (!viewRef || !healthBack || !healthBar) return;
+
+    QPointF topRight = viewRef->mapToScene(viewRef->viewport()->rect().topRight());
+
+    float hudX = topRight.x() - 220;  // margen derecha
+    float hudY = topRight.y() + 20;   // margen arriba
+
+    healthBack->setPos(hudX, hudY);
+    healthBar->setPos(hudX, hudY);
+}
+
+void Level2Scene::spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel)
+{
+    Enemy *e = new Enemy(QPointF(starX, starY), QPointF(endX, endY), vel, 20);
+    addItem(e);
+    entities.push_back(e);
+}
+
+void Level2Scene::triggerGameOver()
+{
+    gameOver = true;
+
+    tickTimer->stop();  // Detener actualizaciones
+    if (musicPlayer) musicPlayer->stop();
+
+    // Crear texto "GAME OVER"
+    gameOverText = new QGraphicsTextItem("GAME OVER");
+    gameOverText->setDefaultTextColor(QColor(132,41,30));
+    gameOverText->setFont(QFont("Old English Text MT", 64, QFont::Bold));
+
+    // Centrar el texto respecto a la cámara
+    QPointF center = viewRef->mapToScene(
+        viewRef->viewport()->rect().center()
+        );
+
+    gameOverText->setPos(center.x() - 300, center.y() - 100);
+    gameOverText->setZValue(9999);
+
+    addItem(gameOverText);
+}
+
+void Level2Scene::goToNextLevel()
+{
+    if (musicPlayer) musicPlayer->stop();
+    tickTimer->stop();
+    emit levelCompleted();
 }

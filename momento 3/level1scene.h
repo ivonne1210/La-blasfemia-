@@ -5,7 +5,8 @@
 #include <QTimer>
 #include <vector>
 #include <QGraphicsView>
-
+#include <QMediaPlayer>
+#include <QAudioOutput>
 
 class Level1Scene : public GameScene
 {
@@ -52,5 +53,8 @@ private:
     QGraphicsPixmapItem* portalEffect = nullptr;
     void createPortalEffect();
     void goToNextLevel();
+    QMediaPlayer *musicPlayer = nullptr;
+    QAudioOutput *audioOutput = nullptr;
+
 
 };

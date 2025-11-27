@@ -82,6 +82,19 @@ void Level1Scene::setupScene()
     spawnRandomEnemies(1200, 487,1200,800,100);
     spawnRandomEnemies(1300, 568,1480,568,75);
     spawnRandomEnemies(1480, 720,1300,720,150);
+
+    // --- Música de fondo ---
+    musicPlayer = new QMediaPlayer(this);
+    audioOutput = new QAudioOutput(this);
+    musicPlayer->setAudioOutput(audioOutput);
+
+    musicPlayer->setSource(QUrl::fromLocalFile(
+        "C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/Lvl1S.mp3"
+        ));
+
+    audioOutput->setVolume(1);  // 40% volumen
+    musicPlayer->setLoops(QMediaPlayer::Infinite);
+    musicPlayer->play();
 }
 
 void Level1Scene::onEnter() { /* nothing now */ }
@@ -267,7 +280,7 @@ void Level1Scene::updateHud()
 
 void Level1Scene::spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel)
 {
-    Enemy *e = new Enemy(QPointF(starX, starY), QPointF(endX, endY), vel, 10);
+    Enemy *e = new Enemy(QPointF(starX, starY), QPointF(endX, endY), vel, 20);
     addItem(e);
     entities.push_back(e);
 }
@@ -277,6 +290,7 @@ void Level1Scene::triggerGameOver()
     gameOver = true;
 
     tickTimer->stop();  // Detener actualizaciones
+    if (musicPlayer) musicPlayer->stop();
 
     // Crear texto "GAME OVER"
     gameOverText = new QGraphicsTextItem("GAME OVER");
@@ -298,7 +312,6 @@ void Level1Scene::createPortalEffect()
 {
     portalActive = true;
 
-    // Cargar sprite del resplandor (pon uno tú)
     QPixmap glow("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/portal.png");
     glow = glow.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     portalEffect = new QGraphicsPixmapItem(glow);
@@ -312,6 +325,7 @@ void Level1Scene::createPortalEffect()
 
 void Level1Scene::goToNextLevel()
 {
+    if (musicPlayer) musicPlayer->stop();
     tickTimer->stop();
     emit levelCompleted();    // NOTIFICAMOS AL MANAGER
 }

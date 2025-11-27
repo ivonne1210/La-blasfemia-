@@ -1,13 +1,16 @@
+#ifndef PLAYER2_H
+#define PLAYER2_H
+
 #pragma once
 #include "actor.h"
 #include <QTimer>
 #include <vector>
 #include <QPixmap>
 
-class Player : public Actor
+class Player2 : public Actor
 {
 public:
-    Player(QGraphicsItem *parent = nullptr);
+    Player2(QGraphicsItem *parent = nullptr);
 
     void updateEntity(qreal dt) override;
 
@@ -15,6 +18,7 @@ public:
     void moveRight(bool on);
     void moveUp(bool on);
     void moveDown(bool on);
+    void defense(bool on);
 
     int speed() const { return m_speed; }
 
@@ -23,7 +27,7 @@ public:
     void takeDamage(int amount);
     void storeLastSafePos();
     void restoreLastSafePos();
-    bool left, right, up, down;
+    bool left, right, up, down, defen;
     std::vector<QPixmap> walkFrames;
     int currentFrame;
     QTimer *animTimer;
@@ -38,3 +42,5 @@ private:
     bool blinking;
     QPointF lastSafePos;
 };
+
+#endif // PLAYER2_H

@@ -14,7 +14,8 @@ SOURCES += \
         level1scene.cpp \
         main.cpp \
         menuscene.cpp \
-        player.cpp
+        player.cpp \
+        player2.cpp
 
 HEADERS += \
     Level2Scene.h \
@@ -26,7 +27,8 @@ HEADERS += \
     item.h \
     level1scene.h \
     menuscene.h \
-    player.h
+    player.h \
+    player2.h
 
 RESOURCES += \
     resources.qrc

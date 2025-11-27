@@ -18,9 +18,10 @@ GameManager::GameManager(QWidget *parent)
     // Start with menu
     MenuScene *menu = new MenuScene();
     connect(menu, &MenuScene::startCampaignRequested, this, [this](){
-        // Start Level1 when menu requests campaign start
-        Level1Scene *l1 = new Level1Scene();
-        setGameScene(l1);
+         //Start Level1 when menu requests campaign start
+        //Level1Scene *l1 = new Level1Scene();
+        //setGameScene(l1);
+        loadLevel2();
     });
     setGameScene(menu);
 }
@@ -42,7 +43,6 @@ void GameManager::setGameScene(GameScene *scene)
     currentScene = scene;
     view->setScene(scene);
 
-    // Si es level 1 → le pasamos la vista y conectamos el "levelCompleted"
     if (auto l1 = dynamic_cast<Level1Scene*>(scene)) {
         l1->setView(view);
 

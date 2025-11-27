@@ -5,11 +5,18 @@
 Item::Item(const QString& spritePath, QGraphicsItem* parent)
     : QGraphicsPixmapItem(parent)
 {
-    setPixmap(QPixmap(spritePath));
-    setZValue(5); // encimado del piso
+    QPixmap original(spritePath);
 
-    // activar colisiones
-    setFlag(QGraphicsItem::ItemIsSelectable, false);
+    // 🚀 Escala por ejemplo al 150% del tamaño original
+    QPixmap scaled = original.scaled(
+        original.width() * 1.5,
+        original.height() * 1.5,
+        Qt::KeepAspectRatio,
+        Qt::SmoothTransformation
+        );
+
+    setPixmap(scaled);
+    setZValue(5);
 }
 
 QRectF Item::boundingRect() const
