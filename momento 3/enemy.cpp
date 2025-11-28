@@ -28,25 +28,22 @@ Enemy::Enemy(QPointF start, QPointF end, qreal speed, int dmg, QGraphicsItem *pa
 
 void Enemy::updateEntity(qreal dt)
 {
-    // ---- MOVIMIENTO LINEAL ----
     QPointF pos = this->pos();
     QPointF dir = (target - pos);
 
     qreal dist = qSqrt(dir.x()*dir.x() + dir.y()*dir.y());
 
     if (dist < 3) {
-        // Llegó → cambiar destino
         target = (target == pointA ? pointB : pointA);
         return;
     }
 
-    dir /= dist; // normalizar
+    dir /= dist;
 
     setVelocity(QPointF(dir.x() * m_speed, dir.y() * m_speed));
 
     Actor::updateEntity(dt);
 
-    // ---- ACTUALIZAR ANIMACIÓN ----
     updateDirectionAnimation();
     updateWalkAnimation(dt);
 }

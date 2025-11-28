@@ -2,6 +2,7 @@
 #include "gamescene.h"
 #include "player2.h"
 #include "arrow.h"
+#include "enemy2.h"
 #include "item.h"
 #include <QTimer>
 #include <vector>
@@ -47,7 +48,8 @@ private:
     void updateEntities(qreal dt);
     void updateHealthBar();
     void updateHud();
-    void spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel);
+    void enemy2Shoot();
+    void spawnRandomEnemies(int starX, int starY);
     bool gameOver = false;
     QGraphicsTextItem* gameOverText = nullptr;
     QGraphicsPixmapItem* background;
@@ -58,9 +60,7 @@ private:
     QAudioOutput *audioOutput = nullptr;
     float travelledDistance = 0.0f;
     float lastPlayerY = 0.0f;
-    bool hordeActive = false;
-    float nextHordeAt = 300.0f;
-
-
+    float nextHordeAt = 100.0f;
+    int numeroH = 0;
 
 };

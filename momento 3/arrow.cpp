@@ -5,8 +5,8 @@ Arrow::Arrow(QPointF startPos, int dir, float speed, int dmg)
     : direction(dir), velocity(speed), damage(dmg)
 {
     // ---- CARGAR SPRITES ----
-    spriteUp = QPixmap("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/arrow1.png").scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    spriteDown = QPixmap("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/arrow2.png").scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    spriteUp = QPixmap("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/arrow1.png").scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    spriteDown = QPixmap("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/arrow2.png").scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
     // ---- Elegir sprite basado en dirección ----
     if (direction == -1)

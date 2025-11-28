@@ -11,6 +11,7 @@ public:
 
     void updateEntity(qreal dt) override;
     int direction;
+    int getDamage(){return damage;};
 
 private:
     float velocity;

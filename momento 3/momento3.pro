@@ -8,6 +8,7 @@ SOURCES += \
         actor.cpp \
         arrow.cpp \
         enemy.cpp \
+        enemy2.cpp \
         entity.cpp \
         gamemanager.cpp \
         gamescene.cpp \
@@ -23,6 +24,7 @@ HEADERS += \
     actor.h \
     arrow.h \
     enemy.h \
+    enemy2.h \
     entity.h \
     gamemanager.h \
     gamescene.h \

@@ -1,5 +1,5 @@
 #include "level2scene.h"
-#include "enemy.h"
+#include "enemy2.h"
 #include <QKeyEvent>
 #include <QDateTime>
 #include <QGraphicsRectItem>
@@ -15,6 +15,18 @@ Level2Scene::Level2Scene(QObject *parent)
     connect(tickTimer, &QTimer::timeout, this, &Level2Scene::onTick);
     tickTimer->start(16);
     lastTimeMs = QDateTime::currentMSecsSinceEpoch();
+
+    QPainterPath backPath;
+    backPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBack = addPath(backPath, QPen(Qt::black), QBrush(Qt::darkGray));
+    healthBack->setZValue(1000);
+
+    QPainterPath barPath;
+    barPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
+    healthBar->setZValue(1001);
 }
 
 Level2Scene::~Level2Scene()
@@ -78,6 +90,7 @@ void Level2Scene::onTick()
     updateHealthBar();
     updateHud();
     update();
+    enemy2Shoot();
 }
 
 void Level2Scene::updateEntities(qreal dt)
@@ -91,7 +104,7 @@ void Level2Scene::updateEntities(qreal dt)
 
             float minX = 200;
             float maxX = 880;
-            float minY = 580;
+            float minY = 500;
             float maxY = 856;
 
             float halfW = player->pixmap().width() / 2.0f;
@@ -110,56 +123,45 @@ void Level2Scene::updateEntities(qreal dt)
                 pos.setY(maxY - halfH);
 
             player->setPos(pos);
-            // ---- SISTEMA DE RECORRIDO ----
             if (player->up){lastPlayerY+=1;}
-            if (!hordeActive) {
-                travelledDistance = lastPlayerY;
-            }
-            if(travelledDistance >= nextHordeAt){
-                spawnHorde();
-            }
         }
     }
-    for (Item* it : items)
-    {
-        if (player->collidesWithItem(it))
-        {
-            qDebug() << "Jugador recogió un ítem!";
+    bool hayEnemigos = false;
 
-            removeItem(it);
-            items.erase(std::remove(items.begin(), items.end(), it), items.end());
-            delete it;
+    for (Entity* ent : entities)
+    {
+        Enemy2* enemy = dynamic_cast<Enemy2*>(ent);
+        if (enemy) {
+            hayEnemigos = true;
             break;
         }
     }
 
-    for (Entity *ent : entities)
+    if (!hayEnemigos)
     {
-        Enemy *enemy = dynamic_cast<Enemy*>(ent);
-        if (!enemy) continue;
+        travelledDistance = lastPlayerY;
 
-        if (player->collidesWithItem(enemy))
+        if (travelledDistance >= nextHordeAt)
         {
-            player->takeDamage(enemy->getDamage());
-
-            if(player->health() <= 0 && !gameOver){
-                triggerGameOver();
-                return;
-            }
+            spawnHorde();
         }
     }
 
     for (Entity* e : entities)
     {
-        float minYA = 580;
-
         if (!e) continue;
 
         Arrow* arrow = dynamic_cast<Arrow*>(e);
         if (arrow)
         {
             // eliminar la flecha si sale del mapa
-            if (arrow->direction == -1 && arrow->y() < minYA)
+            if (arrow->direction == -1 && arrow->y() < 580)
+            {
+                removeItem(arrow);
+                e = nullptr;
+                continue;
+            }
+            else if(arrow->direction == 1 && arrow->y() > 820)
             {
                 removeItem(arrow);
                 e = nullptr;
@@ -169,15 +171,29 @@ void Level2Scene::updateEntities(qreal dt)
             // Revisar colisión con enemigos
             for (Entity* other : entities)
             {
-                Enemy* enemy = dynamic_cast<Enemy*>(other);
+                Enemy2* enemy = dynamic_cast<Enemy2*>(other);
                 if (!enemy) continue;
-
-                if (arrow->collidesWithItem(enemy))
+                if (arrow->collidesWithItem(enemy) && arrow->direction == -1)
                 {
                     qDebug() << "Flecha golpeó enemigo";
-                    //enemy->takeDamage(arrow->getDamage());
-
-                    // eliminar flecha
+                    enemy->takeDamage(arrow->getDamage());
+                    removeItem(arrow);
+                    entities.erase(std::remove(entities.begin(), entities.end(), arrow), entities.end());
+                    delete arrow;
+                    if(enemy->getHealth()<=0){
+                        removeItem(enemy);
+                        entities.erase(std::remove(entities.begin(), entities.end(), enemy), entities.end());
+                        delete enemy;
+                    }
+                    break;
+                }
+                if (arrow->collidesWithItem(player) && arrow->direction == 1)
+                {
+                    if(player->defen){
+                    }
+                    else{
+                    player->takeDamage(arrow->getDamage());
+                    }
                     removeItem(arrow);
                     entities.erase(std::remove(entities.begin(), entities.end(), arrow), entities.end());
                     delete arrow;
@@ -206,7 +222,7 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Up:
     case Qt::Key_W:
 
-        if (!hordeActive)
+        if (travelledDistance<=nextHordeAt)
             lastPlayerY += 4;
         player->moveUp(true);
         break;
@@ -223,8 +239,15 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
 
         // posición de inicio EXACTA del jugador
         QPointF start = player->pos();
-        // 🔥 CREAR FLECHA
-        Arrow* arrow = new Arrow(start,dir,100,10);
+        int dmg = 0;
+        if(numeroH<3){
+            dmg = 25;
+        }
+        else{
+            dmg = 10;
+        }
+        Arrow* arrow = new Arrow(start,dir,150,dmg);
+
         addItem(arrow);
         entities.push_back(arrow);
         player->atack(true);
@@ -298,9 +321,9 @@ void Level2Scene::updateHud()
     healthBar->setPos(hudX, hudY);
 }
 
-void Level2Scene::spawnRandomEnemies(int starX, int starY, int endX, int endY, int vel)
+void Level2Scene::spawnRandomEnemies(int starX, int starY)
 {
-    Enemy *e = new Enemy(QPointF(starX, starY), QPointF(endX, endY), vel, 20);
+    Enemy2 *e = new Enemy2(QPointF(starX, starY), 50);
     addItem(e);
     entities.push_back(e);
 }
@@ -337,19 +360,81 @@ void Level2Scene::goToNextLevel()
 
 void Level2Scene::spawnHorde()
 {
-    hordeActive = true;
     travelledDistance = 0;
+    lastPlayerY = 0;
+    numeroH +=1;
 
-    for (int i = 0; i < 1; i++)
-    {
-        int x = 300 + (i * 100);
-        spawnRandomEnemies(x, 580, x, 900, 200);
+    switch(numeroH){
+    case 1:
+        spawnRandomEnemies(540, 510);
+        spawnRandomEnemies(420, 510);
+        break;
+    case 2:
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        break;
+    case 3:
+        spawnRandomEnemies(540, 510);
+        spawnRandomEnemies(420, 510);
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        break;
+    case 4:
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        spawnRandomEnemies(480, 570);
+        break;
+    case 5:
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        break;
+    case 6:
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        spawnRandomEnemies(480, 510);
+        break;
+    case 7:
+        spawnRandomEnemies(540, 510);
+        spawnRandomEnemies(420, 510);
+        spawnRandomEnemies(600, 570);
+        spawnRandomEnemies(360, 570);
+        break;
+    default:
+        break;
     }
 
-    QTimer::singleShot(5000, this, [this]() {
-        hordeActive = false;
-        nextHordeAt += 300;
-        qDebug() << "Horda eliminada → recorrido reactivado";
-    });
+    if (numeroH >= 5)
+    {
+        for (Entity* e : entities)
+        {
+            Enemy2* enemy = dynamic_cast<Enemy2*>(e);
+            if (enemy)
+                enemy->enableMovement(true);
+        }
+    }
+
 }
+
+void Level2Scene::enemy2Shoot()
+{
+    if (!player) return;
+
+    for (Entity* e : entities)
+    {
+        Enemy2* enemy = dynamic_cast<Enemy2*>(e);
+        if (!enemy) continue;
+
+        int chance = QRandomGenerator::global()->bounded(1000);
+        if (chance < 10)
+        {
+            QPointF start = enemy->pos();
+            int direction = 1;
+
+            Arrow* arrow = new Arrow(QPointF(start.x(),start.y()+100), direction, 150, 10);
+            addItem(arrow);
+            entities.push_back(arrow);
+        }
+    }
+}
+
 
