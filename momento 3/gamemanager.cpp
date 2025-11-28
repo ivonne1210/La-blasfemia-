@@ -46,12 +46,15 @@ void GameManager::setGameScene(GameScene *scene)
     if (auto l1 = dynamic_cast<Level1Scene*>(scene)) {
         l1->setView(view);
 
-        // 🔥 CUANDO LEVEL1 Termine → cargamos LEVEL2
         connect(l1, &Level1Scene::levelCompleted, this, [this]() {
             loadLevel2();
         });
     }
 
+    if (auto lvl2 = dynamic_cast<Level2Scene*>(scene)) {
+        lvl2->setView(view);
+        scene->onEnter();
+    }
     view->setFocus();
 }
 

@@ -19,6 +19,7 @@ public:
     void moveUp(bool on);
     void moveDown(bool on);
     void defense(bool on);
+    void atack(bool on);
 
     int speed() const { return m_speed; }
 
@@ -27,7 +28,7 @@ public:
     void takeDamage(int amount);
     void storeLastSafePos();
     void restoreLastSafePos();
-    bool left, right, up, down, defen;
+    bool left, right, up, down, defen, atc;
     std::vector<QPixmap> walkFrames;
     int currentFrame;
     QTimer *animTimer;

@@ -59,7 +59,11 @@ void Level2Scene::setupScene()
     musicPlayer->play();
 }
 
-void Level2Scene::onEnter() { }
+void Level2Scene::onEnter()
+{
+    if (viewRef && player)
+        viewRef->centerOn(player);
+}
 void Level2Scene::onExit() {}
 
 void Level2Scene::onTick()
@@ -68,10 +72,6 @@ void Level2Scene::onTick()
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     qreal dt = (now - lastTimeMs) / 1000.0;
     lastTimeMs = now;
-
-    if (viewRef && player) {
-        viewRef->centerOn(player);
-    }
 
     updateEntities(dt);
     updateHealthBar();
@@ -161,8 +161,11 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
     case Qt::Key_S:
         player->moveDown(false);
         break;
-    case Qt::Key_F:
+    case Qt::Key_K:
         player->defense(true);
+        break;
+    case Qt::Key_L:
+        player->atack(true);
         break;
     default:
         QGraphicsScene::keyPressEvent(event);
@@ -192,8 +195,11 @@ void Level2Scene::keyReleaseEvent(QKeyEvent *event)
     case Qt::Key_S:
         player->moveDown(false);
         break;
-    case Qt::Key_F:
+    case Qt::Key_K:
         player->defense(false);
+        break;
+    case Qt::Key_L:
+        player->atack(false);
         break;
     default:
         QGraphicsScene::keyReleaseEvent(event);

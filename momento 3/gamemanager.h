@@ -3,6 +3,7 @@
 #include <QGraphicsView>
 #include "gamescene.h"
 #include "level2scene.h"
+#include "level1scene.h"
 
 class GameManager : public QMainWindow
 {

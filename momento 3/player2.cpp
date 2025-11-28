@@ -14,7 +14,7 @@ Player2::Player2(QGraphicsItem *parent)
     currentFrame(0),
     invincibleTime(0)
 {
-    for (int i = 1; i <= 6; i++) {
+    for (int i = 1; i <= 7; i++) {
         QString path = QString("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/player2_%1.png").arg(i);
         QPixmap frame(path);
 
@@ -72,6 +72,7 @@ void Player2::moveRight(bool on) { right = on; }
 void Player2::moveUp(bool on) { up = on; }
 void Player2::moveDown(bool on) { down = on; }
 void Player2::defense(bool on) { defen = on; }
+void Player2::atack(bool on) { atc = on; }
 
 
 void Player2::updateAnimation()
@@ -79,27 +80,31 @@ void Player2::updateAnimation()
     int startFrame = 0;
     int endFrame = 0;
     int idleFrame = 0;
-    bool moving = (left || right || up || down);
+    bool moving = (left || right || up || down || defen || atc);
 
     if (down && !up) {
         startFrame = 0; endFrame = 0; idleFrame = 0;
-        lastDirection1 = 0; // abajo
+        lastDirection1 = 0;
     }
     else if (up && !down) {
         startFrame = 0; endFrame = 2; idleFrame = 0;
-        lastDirection1 = 0; // arriba
+        lastDirection1 = 0;
     }
     else if (right && !left) {
         startFrame = 3; endFrame = 3; idleFrame = 0;
-        lastDirection1 = 1; // derecha
+        lastDirection1 = 1;
     }
     else if (left && !right) {
-        startFrame = 4; endFrame = 4; idleFrame = 1;
-        lastDirection1 = 1; // izquierda
+        startFrame = 4; endFrame = 4; idleFrame = 0;
+        lastDirection1 = 1;
     }
-    else if(defen){
-        startFrame = 5; endFrame = 5; idleFrame = 5;
-        lastDirection1 = 2;
+    else if(defen && !up && !right && !left && !down && !atc){
+        startFrame = 5; endFrame = 5; idleFrame = 0;
+        lastDirection1 = 0;
+    }
+    else if(atc && !up && !right && !left && !down && !defen){
+        startFrame = 6; endFrame = 6; idleFrame = 0;
+        lastDirection1 = 0;
     }
     else {
         moving = false;
