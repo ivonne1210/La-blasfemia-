@@ -9,6 +9,9 @@
 
 class Player2 : public Actor
 {
+signals:
+    void shootArrow(int direction, QPointF pos);
+
 public:
     Player2(QGraphicsItem *parent = nullptr);
 

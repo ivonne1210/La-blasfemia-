@@ -6,6 +6,7 @@ QT += multimedia
 SOURCES += \
         Level2Scene.cpp \
         actor.cpp \
+        arrow.cpp \
         enemy.cpp \
         entity.cpp \
         gamemanager.cpp \
@@ -20,6 +21,7 @@ SOURCES += \
 HEADERS += \
     Level2Scene.h \
     actor.h \
+    arrow.h \
     enemy.h \
     entity.h \
     gamemanager.h \

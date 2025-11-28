@@ -42,8 +42,9 @@ void Level2Scene::setupScene()
 
     player = new Player2();
     addItem(player);
-    player->setPos(525, 765);
+    player->setPos(525, 800);
     entities.push_back(player);
+    lastPlayerY = 0;
 
     // --- Música de fondo ---
     musicPlayer = new QMediaPlayer(this);
@@ -88,24 +89,35 @@ void Level2Scene::updateEntities(qreal dt)
 
             QPointF pos = player->pos();
 
-            QRectF bounds(0, 385, sceneRect().width(), sceneRect().height() - 385);
+            float minX = 200;
+            float maxX = 880;
+            float minY = 580;
+            float maxY = 856;
 
-            qreal halfW = player->pixmap().width() / 2.0;
-            qreal halfH = 0;
+            float halfW = player->pixmap().width() / 2.0f;
+            float halfH = player->pixmap().height() / 2.0f;
 
-            if (pos.x() < bounds.left() + halfW)
-                pos.setX(bounds.left() + halfW);
+            if (pos.x() < minX + halfW)
+                pos.setX(minX + halfW);
 
-            if (pos.x() > bounds.right() - halfW)
-                pos.setX(bounds.right() - halfW);
+            if (pos.x() > maxX - halfW)
+                pos.setX(maxX - halfW);
 
-            if (pos.y() < bounds.top() + halfH)
-                pos.setY(halfH);
+            if (pos.y() < minY + halfH)
+                pos.setY(minY + halfH);
 
-            if (pos.y() > bounds.bottom() - halfH)
-                pos.setY(halfH);
+            if (pos.y() > maxY - halfH)
+                pos.setY(maxY - halfH);
 
             player->setPos(pos);
+            // ---- SISTEMA DE RECORRIDO ----
+            if (player->up){lastPlayerY+=1;}
+            if (!hordeActive) {
+                travelledDistance = lastPlayerY;
+            }
+            if(travelledDistance >= nextHordeAt){
+                spawnHorde();
+            }
         }
     }
     for (Item* it : items)
@@ -136,6 +148,44 @@ void Level2Scene::updateEntities(qreal dt)
             }
         }
     }
+
+    for (Entity* e : entities)
+    {
+        float minYA = 580;
+
+        if (!e) continue;
+
+        Arrow* arrow = dynamic_cast<Arrow*>(e);
+        if (arrow)
+        {
+            // eliminar la flecha si sale del mapa
+            if (arrow->direction == -1 && arrow->y() < minYA)
+            {
+                removeItem(arrow);
+                e = nullptr;
+                continue;
+            }
+
+            // Revisar colisión con enemigos
+            for (Entity* other : entities)
+            {
+                Enemy* enemy = dynamic_cast<Enemy*>(other);
+                if (!enemy) continue;
+
+                if (arrow->collidesWithItem(enemy))
+                {
+                    qDebug() << "Flecha golpeó enemigo";
+                    //enemy->takeDamage(arrow->getDamage());
+
+                    // eliminar flecha
+                    removeItem(arrow);
+                    entities.erase(std::remove(entities.begin(), entities.end(), arrow), entities.end());
+                    delete arrow;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void Level2Scene::keyPressEvent(QKeyEvent *event)
@@ -155,6 +205,9 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
         break;
     case Qt::Key_Up:
     case Qt::Key_W:
+
+        if (!hordeActive)
+            lastPlayerY += 4;
         player->moveUp(true);
         break;
     case Qt::Key_Down:
@@ -164,9 +217,18 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
     case Qt::Key_K:
         player->defense(true);
         break;
-    case Qt::Key_L:
+    case Qt::Key_L:{
+        // dirección del jugador
+        int dir = -1;
+
+        // posición de inicio EXACTA del jugador
+        QPointF start = player->pos();
+        // 🔥 CREAR FLECHA
+        Arrow* arrow = new Arrow(start,dir,100,10);
+        addItem(arrow);
+        entities.push_back(arrow);
         player->atack(true);
-        break;
+        break;}
     default:
         QGraphicsScene::keyPressEvent(event);
     }
@@ -272,3 +334,22 @@ void Level2Scene::goToNextLevel()
     tickTimer->stop();
     emit levelCompleted();
 }
+
+void Level2Scene::spawnHorde()
+{
+    hordeActive = true;
+    travelledDistance = 0;
+
+    for (int i = 0; i < 1; i++)
+    {
+        int x = 300 + (i * 100);
+        spawnRandomEnemies(x, 580, x, 900, 200);
+    }
+
+    QTimer::singleShot(5000, this, [this]() {
+        hordeActive = false;
+        nextHordeAt += 300;
+        qDebug() << "Horda eliminada → recorrido reactivado";
+    });
+}
+
