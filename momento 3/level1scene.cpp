@@ -94,11 +94,16 @@ void Level1Scene::setupScene()
 
     audioOutput->setVolume(1);  // 40% volumen
     musicPlayer->setLoops(QMediaPlayer::Infinite);
-    musicPlayer->play();
 }
 
-void Level1Scene::onEnter() { /* nothing now */ }
-void Level1Scene::onExit() { /* stop timers or sounds if any */ }
+void Level1Scene::onEnter() {}
+void Level1Scene::onExit() {
+    if (tickTimer) tickTimer->stop();
+    if (musicPlayer) musicPlayer->stop();
+}
+
+
+
 
 void Level1Scene::onTick()
 {
@@ -146,22 +151,22 @@ void Level1Scene::updateEntities(qreal dt)
             player->setPos(pos);
         }
     }
-    for (Item* it : items)
-    {
-        if (player->collidesWithItem(it))
-        {
+    for (int i = 0; i < static_cast<int>(items.size()); ++i) {
+        Item* it = items[i];
+        if (player->collidesWithItem(it)) {
             qDebug() << "Jugador recogió un ítem!";
 
             removeItem(it);
-            items.erase(std::remove(items.begin(), items.end(), it), items.end());
             delete it;
-            if (!portalActive && items.empty())
-            {
+            items.erase(items.begin() + i);
+
+            if (!portalActive && items.empty()) {
                 createPortalEffect();
             }
-            break;
+            break; // solo un ítem por frame
         }
     }
+
 
     // --- ENEMIGOS: DETECTOR DE DAÑO Y RETROCESO ---
     for (Entity *ent : entities)
@@ -325,7 +330,5 @@ void Level1Scene::createPortalEffect()
 
 void Level1Scene::goToNextLevel()
 {
-    if (musicPlayer) musicPlayer->stop();
-    tickTimer->stop();
     emit levelCompleted();    // NOTIFICAMOS AL MANAGER
 }

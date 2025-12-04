@@ -5,6 +5,7 @@ QT += multimedia
 
 SOURCES += \
         Level2Scene.cpp \
+        Level3Scene.cpp \
         actor.cpp \
         arrow.cpp \
         enemy.cpp \
@@ -17,10 +18,12 @@ SOURCES += \
         main.cpp \
         menuscene.cpp \
         player.cpp \
-        player2.cpp
+        player2.cpp \
+        player3.cpp
 
 HEADERS += \
     Level2Scene.h \
+    Level3Scene.h \
     actor.h \
     arrow.h \
     enemy.h \
@@ -32,7 +35,8 @@ HEADERS += \
     level1scene.h \
     menuscene.h \
     player.h \
-    player2.h
+    player2.h \
+    player3.h
 
 RESOURCES += \
     resources.qrc

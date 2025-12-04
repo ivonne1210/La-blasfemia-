@@ -18,7 +18,7 @@ Player2::Player2(QGraphicsItem *parent)
         QString path = QString("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/player2_%1.png").arg(i);
         QPixmap frame(path);
 
-        frame = frame.scaled(110, 110, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        frame = frame.scaled(130, 130, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         walkFrames.push_back(frame);
     }
 

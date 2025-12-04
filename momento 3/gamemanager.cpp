@@ -1,10 +1,11 @@
 #include "gamemanager.h"
 #include "menuscene.h"
-#include "level1scene.h"
 #include <QVBoxLayout>
 
 GameManager::GameManager(QWidget *parent)
-    : QMainWindow(parent), view(new QGraphicsView(this)), currentScene(nullptr)
+    : QMainWindow(parent),
+    view(new QGraphicsView(this)),
+    currentScene(nullptr)
 {
     setWindowTitle("La Blasfemia");
     resize(900, 700);
@@ -12,32 +13,36 @@ GameManager::GameManager(QWidget *parent)
     view->setRenderHint(QPainter::Antialiasing);
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
     setCentralWidget(view);
 
-    // Start with menu
-    MenuScene *menu = new MenuScene();
-    connect(menu, &MenuScene::startCampaignRequested, this, [this](){
-         //Start Level1 when menu requests campaign start
-        //Level1Scene *l1 = new Level1Scene();
-        //setGameScene(l1);
-        loadLevel2();
+    menuScene   = new MenuScene(this);
+    level1Scene = new Level1Scene(this);
+    level2Scene = new Level2Scene(this);
+    level3Scene = new Level3Scene(this);
+
+    connect(menuScene, &MenuScene::startCampaignRequested, this, [this]() {
+        //setGameScene(level1Scene);
+        loadLevel3();
     });
-    setGameScene(menu);
+
+    connect(level1Scene, &Level1Scene::levelCompleted, this, [this]() {
+        loadLevel3();
+    });
+
+    setGameScene(menuScene);
 }
 
 GameManager::~GameManager()
 {
-    if (currentScene) delete currentScene;
 }
 
 void GameManager::setGameScene(GameScene *scene)
 {
-    if (!scene) return;
+    if (!scene || scene == currentScene)
+        return;
 
     if (currentScene) {
-        view->setScene(nullptr);
-        delete currentScene;
+        currentScene->onExit();
     }
 
     currentScene = scene;
@@ -45,22 +50,27 @@ void GameManager::setGameScene(GameScene *scene)
 
     if (auto l1 = dynamic_cast<Level1Scene*>(scene)) {
         l1->setView(view);
-
-        connect(l1, &Level1Scene::levelCompleted, this, [this]() {
-            loadLevel2();
-        });
     }
 
     if (auto lvl2 = dynamic_cast<Level2Scene*>(scene)) {
         lvl2->setView(view);
-        scene->onEnter();
+        lvl2->onEnter();
     }
+
+    if (auto lvl3 = dynamic_cast<Level3Scene*>(scene)) {
+        lvl3->setView(view);
+        lvl3->onEnter();
+    }
+
     view->setFocus();
 }
 
 void GameManager::loadLevel2()
 {
-    // Aquí cargas tu escena del nivel 2
-    Level2Scene *lvl2 = new Level2Scene();
-    setGameScene(lvl2);
+    setGameScene(level2Scene);
+}
+
+void GameManager::loadLevel3()
+{
+    setGameScene(level3Scene);
 }

@@ -6,15 +6,27 @@
 #include <QRandomGenerator>
 
 Level2Scene::Level2Scene(QObject *parent)
-    : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
+    : GameScene(parent),
+    player(nullptr),
+    tickTimer(new QTimer(this)),
+    lastTimeMs(0),
+    lastSecondTick(0),
+    levelTime(80),
+    gameOver(false),          // <--- IMPORTANTE
+    viewRef(nullptr),
+    healthBack(nullptr),
+    healthBar(nullptr),
+    timerText(nullptr),
+    gameOverText(nullptr),
+    background(nullptr),
+    travelledDistance(0.0f),
+    nextHordeAt(100.0f),      // pon el valor que tengas pensado
+    lastPlayerY(0.0f),
+    numeroH(0),
+    musicPlayer(nullptr),
+    audioOutput(nullptr)
 {
-    QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back1.png");
-    setSceneRect(0, 0, map.width(), map.height());
     setupScene();
-
-    connect(tickTimer, &QTimer::timeout, this, &Level2Scene::onTick);
-    tickTimer->start(16);
-    lastTimeMs = QDateTime::currentMSecsSinceEpoch();
 
     QPainterPath backPath;
     backPath.addRoundedRect(0, 0, 200, 20, 8, 8);
@@ -27,6 +39,16 @@ Level2Scene::Level2Scene(QObject *parent)
 
     healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
     healthBar->setZValue(1001);
+
+    // === TIMER DEL NIVEL ===
+    timerText = new QGraphicsTextItem("60");
+    timerText->setDefaultTextColor(QColor(132,41,30));
+    timerText->setFont(QFont("Old English Text MT", 32, QFont::Bold));
+    timerText->setZValue(2000);
+    addItem(timerText);
+
+    // posición inicial arriba a la izquierda
+    timerText->setPos(20, 20);
 }
 
 Level2Scene::~Level2Scene()
@@ -43,10 +65,8 @@ void Level2Scene::setupScene()
         setBackgroundBrush(Qt::black);
     }
 
-    // Ajustar tamaño de la escena AL TAMAÑO DEL PNG
     setSceneRect(0, 0, map.width(), map.height());
 
-    // === CREAR EL ÚNICO ITEM DE FONDO ===
     background = new QGraphicsPixmapItem(map);
     background->setZValue(-100);
     background->setPos(0, 0);
@@ -69,13 +89,18 @@ void Level2Scene::setupScene()
 
     audioOutput->setVolume(1);
     musicPlayer->setLoops(QMediaPlayer::Infinite);
-    musicPlayer->play();
 }
 
 void Level2Scene::onEnter()
 {
     if (viewRef && player)
         viewRef->centerOn(player);
+    connect(tickTimer, &QTimer::timeout, this, &Level2Scene::onTick);
+    tickTimer->start(16);
+    lastTimeMs = QDateTime::currentMSecsSinceEpoch();
+    if (musicPlayer && musicPlayer->playbackState() != QMediaPlayer::PlayingState) {
+        musicPlayer->play();
+    }
 }
 void Level2Scene::onExit() {}
 
@@ -84,8 +109,27 @@ void Level2Scene::onTick()
     if (gameOver) return;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     qreal dt = (now - lastTimeMs) / 1000.0;
+    if (now - lastSecondTick >= 1000)
+    {
+        lastSecondTick = now;
+
+        levelTime--;
+
+        if (timerText)
+            timerText->setPlainText(QString::number(levelTime));
+
+        if (levelTime <= 0 && !gameOver)
+        {
+            triggerGameOver();
+            return;
+        }
+    }
     lastTimeMs = now;
 
+    if(player->health() <= 0 && !gameOver){
+        triggerGameOver();
+        return;
+    }
     updateEntities(dt);
     updateHealthBar();
     updateHud();
@@ -95,11 +139,17 @@ void Level2Scene::onTick()
 
 void Level2Scene::updateEntities(qreal dt)
 {
+    if (!player) return;
+
+    // 1) Actualizar entidades y limitar al jugador, y saber si hay enemigos
+    bool hayEnemigos = false;
+
     for (Entity* e : entities) {
-        if (e) e->updateEntity(dt);
+        if (!e) continue;
+
+        e->updateEntity(dt);
 
         if (e == player) {
-
             QPointF pos = player->pos();
 
             float minX = 200;
@@ -110,99 +160,94 @@ void Level2Scene::updateEntities(qreal dt)
             float halfW = player->pixmap().width() / 2.0f;
             float halfH = player->pixmap().height() / 2.0f;
 
-            if (pos.x() < minX + halfW)
-                pos.setX(minX + halfW);
-
-            if (pos.x() > maxX - halfW)
-                pos.setX(maxX - halfW);
-
-            if (pos.y() < minY + halfH)
-                pos.setY(minY + halfH);
-
-            if (pos.y() > maxY - halfH)
-                pos.setY(maxY - halfH);
+            if (pos.x() < minX + halfW) pos.setX(minX + halfW);
+            if (pos.x() > maxX - halfW) pos.setX(maxX - halfW);
+            if (pos.y() < minY + halfH) pos.setY(minY + halfH);
+            if (pos.y() > maxY - halfH) pos.setY(maxY - halfH);
 
             player->setPos(pos);
-            if (player->up){lastPlayerY+=1;}
-        }
-    }
-    bool hayEnemigos = false;
 
-    for (Entity* ent : entities)
-    {
-        Enemy2* enemy = dynamic_cast<Enemy2*>(ent);
-        if (enemy) {
+            if (player->up) {
+                lastPlayerY += 1;
+            }
+        }
+
+        if (dynamic_cast<Enemy2*>(e)) {
             hayEnemigos = true;
-            break;
         }
     }
 
-    if (!hayEnemigos)
-    {
+    // 2) Si no hay enemigos, revisar distancia recorrida para invocar horda
+    if (!hayEnemigos) {
         travelledDistance = lastPlayerY;
-
-        if (travelledDistance >= nextHordeAt)
-        {
+        if (travelledDistance >= nextHordeAt) {
             spawnHorde();
         }
     }
 
-    for (Entity* e : entities)
-    {
-        if (!e) continue;
+    // 3) Manejo de flechas (borra del vector de forma segura)
+    for (int i = 0; i < static_cast<int>(entities.size()); ) {
+        Arrow* arrow = dynamic_cast<Arrow*>(entities[i]);
+        if (!arrow) {
+            ++i;
+            continue;
+        }
 
-        Arrow* arrow = dynamic_cast<Arrow*>(e);
-        if (arrow)
-        {
-            // eliminar la flecha si sale del mapa
-            if (arrow->direction == -1 && arrow->y() < 580)
-            {
-                removeItem(arrow);
-                e = nullptr;
-                continue;
-            }
-            else if(arrow->direction == 1 && arrow->y() > 820)
-            {
-                removeItem(arrow);
-                e = nullptr;
-                continue;
-            }
+        bool borrarFlecha = false;
 
-            // Revisar colisión con enemigos
-            for (Entity* other : entities)
-            {
-                Enemy2* enemy = dynamic_cast<Enemy2*>(other);
-                if (!enemy) continue;
-                if (arrow->collidesWithItem(enemy) && arrow->direction == -1)
-                {
-                    qDebug() << "Flecha golpeó enemigo";
-                    enemy->takeDamage(arrow->getDamage());
-                    removeItem(arrow);
-                    entities.erase(std::remove(entities.begin(), entities.end(), arrow), entities.end());
-                    delete arrow;
-                    if(enemy->getHealth()<=0){
-                        removeItem(enemy);
-                        entities.erase(std::remove(entities.begin(), entities.end(), enemy), entities.end());
-                        delete enemy;
+        // 3.1 Flecha fuera de los límites verticales
+        if ((arrow->direction == -1 && arrow->y() < 580) ||
+            (arrow->direction == 1 && arrow->y() > 820)) {
+            borrarFlecha = true;
+        } else {
+            // 3.2 Colisión flecha (jugador) -> enemigo (direction = -1)
+            if (arrow->direction == -1) {
+                for (int j = 0; j < static_cast<int>(entities.size()); ++j) {
+                    Enemy2* enemy = dynamic_cast<Enemy2*>(entities[j]);
+                    if (!enemy) continue;
+
+                    if (arrow->collidesWithItem(enemy)) {
+                        qDebug() << "Flecha golpeó enemigo";
+                        enemy->takeDamage(arrow->getDamage());
+
+                        if (enemy->getHealth() <= 0) {
+                            removeItem(enemy);
+                            delete enemy;
+                            entities.erase(entities.begin() + j);
+
+                            // si borramos antes de i, hay que ajustar
+                            if (j < i) {
+                                --i;
+                            }
+                        }
+
+                        borrarFlecha = true;
+                        break;
                     }
-                    break;
                 }
-                if (arrow->collidesWithItem(player) && arrow->direction == 1)
-                {
-                    if(player->defen){
-                    }
-                    else{
+            }
+
+            // 3.3 Colisión flecha (enemigo) -> jugador (direction = 1)
+            if (!borrarFlecha && arrow->direction == 1 && player &&
+                arrow->collidesWithItem(player)) {
+
+                if (!player->defen) {
                     player->takeDamage(arrow->getDamage());
-                    }
-                    removeItem(arrow);
-                    entities.erase(std::remove(entities.begin(), entities.end(), arrow), entities.end());
-                    delete arrow;
-                    break;
                 }
+                borrarFlecha = true;
             }
+        }
+
+        if (borrarFlecha) {
+            removeItem(arrow);
+            delete arrow;
+            entities.erase(entities.begin() + i);
+        } else {
+            ++i;
         }
     }
 }
+
 
 void Level2Scene::keyPressEvent(QKeyEvent *event)
 {
@@ -234,10 +279,7 @@ void Level2Scene::keyPressEvent(QKeyEvent *event)
         player->defense(true);
         break;
     case Qt::Key_L:{
-        // dirección del jugador
         int dir = -1;
-
-        // posición de inicio EXACTA del jugador
         QPointF start = player->pos();
         int dmg = 0;
         if(numeroH<3){
@@ -314,11 +356,16 @@ void Level2Scene::updateHud()
 
     QPointF topRight = viewRef->mapToScene(viewRef->viewport()->rect().topRight());
 
-    float hudX = topRight.x() - 220;  // margen derecha
-    float hudY = topRight.y() + 20;   // margen arriba
+    float hudX = topRight.x() - 220;
+    float hudY = topRight.y() + 20;
 
     healthBack->setPos(hudX, hudY);
     healthBar->setPos(hudX, hudY);
+    if (timerText)
+    {
+        QPointF topLeft = viewRef->mapToScene(viewRef->viewport()->rect().topLeft());
+        timerText->setPos(topLeft.x() + 20, topLeft.y() + 20);
+    }
 }
 
 void Level2Scene::spawnRandomEnemies(int starX, int starY)
@@ -399,6 +446,10 @@ void Level2Scene::spawnHorde()
         spawnRandomEnemies(600, 570);
         spawnRandomEnemies(360, 570);
         break;
+    case 8:
+        goToNextLevel();
+
+        break;
     default:
         break;
     }
@@ -419,22 +470,33 @@ void Level2Scene::enemy2Shoot()
 {
     if (!player) return;
 
-    for (Entity* e : entities)
-    {
-        Enemy2* enemy = dynamic_cast<Enemy2*>(e);
-        if (!enemy) continue;
+    // 1) Primero, recopilar todos los enemigos en una lista aparte
+    std::vector<Enemy2*> enemigos;
+    enemigos.reserve(entities.size());
 
+    for (Entity* e : entities) {
+        Enemy2* enemy = dynamic_cast<Enemy2*>(e);
+        if (enemy) {
+            enemigos.push_back(enemy);
+        }
+    }
+
+    // 2) Luego, iterar sobre esa lista y crear flechas SIN tocar el vector entities mientras lo recorremos
+    for (Enemy2* enemy : enemigos) {
         int chance = QRandomGenerator::global()->bounded(1000);
-        if (chance < 10)
-        {
+        if (chance < 10) {
             QPointF start = enemy->pos();
             int direction = 1;
 
-            Arrow* arrow = new Arrow(QPointF(start.x(),start.y()+100), direction, 150, 10);
+            Arrow* arrow = new Arrow(QPointF(start.x(), start.y() + 100),
+                                     direction,
+                                     150,
+                                     10);
             addItem(arrow);
-            entities.push_back(arrow);
+            entities.push_back(arrow); // aquí es seguro, ya no estamos iterando sobre entities
         }
     }
 }
+
 
 

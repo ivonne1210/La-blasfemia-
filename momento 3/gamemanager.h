@@ -4,22 +4,29 @@
 #include "gamescene.h"
 #include "level2scene.h"
 #include "level1scene.h"
+#include "level3scene.h"
+#include "menuscene.h"
 
+// gamemanager.h
 class GameManager : public QMainWindow
 {
     Q_OBJECT
 public:
     explicit GameManager(QWidget *parent = nullptr);
-    QGraphicsView* getView() const { return view;}
-    ~GameManager() override;
+    ~GameManager();
 
     void setGameScene(GameScene *scene);
 
-signals:
-    void requestStartCampaign();
+public slots:
+    void loadLevel2();
+    void loadLevel3();
 
 private:
     QGraphicsView *view;
-    GameScene *currentScene;
-    void loadLevel2();
+    GameScene *currentScene = nullptr;
+
+    MenuScene  *menuScene   = nullptr;
+    Level1Scene *level1Scene = nullptr;
+    Level2Scene *level2Scene = nullptr;
+    Level3Scene *level3Scene = nullptr;
 };

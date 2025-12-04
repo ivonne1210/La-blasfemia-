@@ -111,3 +111,17 @@ MenuScene::MenuScene(QObject *parent)
     musicPlayer->play();
 
 }
+
+void MenuScene::onExit()
+{
+    if (musicPlayer) {
+        musicPlayer->stop();
+    }
+}
+
+void MenuScene::onEnter()
+{
+    if (musicPlayer && musicPlayer->playbackState() != QMediaPlayer::PlayingState) {
+        musicPlayer->play();
+    }
+}

@@ -3,7 +3,6 @@
 #include "player2.h"
 #include "arrow.h"
 #include "enemy2.h"
-#include "item.h"
 #include <QTimer>
 #include <vector>
 #include <QGraphicsView>
@@ -15,7 +14,6 @@ class Level2Scene : public GameScene
     Q_OBJECT
 signals:
     void levelCompleted();
-
 public:
     explicit Level2Scene(QObject *parent = nullptr);
     QGraphicsView *viewRef = nullptr;
@@ -37,7 +35,8 @@ private:
     Player2 *player;
     QTimer *tickTimer;
     qint64 lastTimeMs;
-    std::vector<Item*> items;
+    qint64 lastSecondTick = 0;
+    QGraphicsTextItem* timerText = nullptr;
     QGraphicsPathItem* healthBack;
     QGraphicsPathItem* healthBar;
 
@@ -54,7 +53,6 @@ private:
     QGraphicsTextItem* gameOverText = nullptr;
     QGraphicsPixmapItem* background;
     void triggerGameOver();
-    bool portalActive = false;
     void goToNextLevel();
     QMediaPlayer *musicPlayer = nullptr;
     QAudioOutput *audioOutput = nullptr;
@@ -62,5 +60,5 @@ private:
     float lastPlayerY = 0.0f;
     float nextHordeAt = 100.0f;
     int numeroH = 0;
-
+    int levelTime = 80;
 };
