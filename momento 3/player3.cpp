@@ -4,7 +4,8 @@
 #include <QDebug>
 
 Player3::Player3(QGraphicsItem *parent)
-    : Actor(parent)
+    : Actor(parent),
+    m_health(100)
 {
     // ==== CARGAR SPRITES ====
     // Ajusta la ruta base a tu carpeta de sprites:
@@ -117,13 +118,19 @@ void Player3::updatePhysics(qreal dt)
 
 void Player3::updateAnimation(qreal dt)
 {
-    // Determinar estado de animación
+    // "Grounded" = piso global o plataforma
+    bool grounded = (onGround || inPlat);
+
     AnimState newState = animState;
 
-    if (!onGround) {
-        if (vy < 0) newState = JumpState;
-        else        newState = FallState;
+    if (!grounded) {
+        // Está en el aire
+        if (vy < 0)
+            newState = JumpState;
+        else
+            newState = FallState;
     } else {
+        // Está sobre algo (piso o plataforma)
         if (qFabs(vx) > 5.0)
             newState = Run;
         else
@@ -138,8 +145,7 @@ void Player3::updateAnimation(qreal dt)
 
     animTimer += dt;
 
-    // Número de frames según el estado
-    int frameCount = 1;
+    int frameCount = 0;
     switch (animState) {
     case Idle:      frameCount = idleFrames.size(); break;
     case Run:       frameCount = runFrames.size();  break;
@@ -156,6 +162,7 @@ void Player3::updateAnimation(qreal dt)
 
     applyAnimFrame();
 }
+
 
 void Player3::applyAnimFrame()
 {

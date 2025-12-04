@@ -3,6 +3,7 @@
 
 #include "gamescene.h"
 #include "player3.h"
+#include "boss3.h"
 #include <QTimer>
 #include <QVector>
 #include <QMediaPlayer>
@@ -40,6 +41,7 @@ private:
 
     // --- Estado ---
     Player3 *player;
+    Boss3 *boss = nullptr;
     QVector<Entity*> entities;    // jugador + enemigos, etc.
     QVector<Item*>   platforms;   // SOLO plataformas (tipo Item)
 
@@ -59,6 +61,9 @@ private:
     qint64 dropThroughUntilMs = 0; // tiempo hasta el que ignoramos plataformas
     bool inicio = true;
 
+    // vida
+    QGraphicsPathItem* healthBack;
+    QGraphicsPathItem* healthBar;
 };
 
 #endif // LEVEL3SCENE_H

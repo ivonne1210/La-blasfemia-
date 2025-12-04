@@ -52,6 +52,13 @@ void Level3Scene::setupScene()
     player->setPos(50, 600);
     entities.push_back(player);
 
+    boss = new Boss3(player);
+    boss->setPos(700, 780);       // esquina derecha, por ejemplo
+    boss->setGroundY(750);        // suelo del jefe
+    addItem(boss);
+    entities.push_back(boss);
+
+
     const qreal PLATFORM_SCALE = 0.28;
     const qreal PLATFORM_SCALE1 = 0.1;
 
@@ -109,7 +116,21 @@ void Level3Scene::setupScene()
         ));
     audioOutput->setVolume(0.8);
     musicPlayer->setLoops(QMediaPlayer::Infinite);
-    // NO reproducimos aquí, solo en onEnter()
+
+    //Vida
+    QPainterPath backPath;
+    backPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBack = addPath(backPath, QPen(Qt::black), QBrush(Qt::darkGray));
+    healthBack->setZValue(1000);
+    healthBack->setPos(690,210);
+
+    QPainterPath barPath;
+    barPath.addRoundedRect(0, 0, 200, 20, 8, 8);
+
+    healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
+    healthBar->setZValue(1001);
+    healthBar->setPos(690,210);
 }
 
 void Level3Scene::setView(QGraphicsView *v)
@@ -199,6 +220,7 @@ void Level3Scene::handlePlatformCollisions(qint64 now)
 {
     if (!player) return;
     if (platforms.isEmpty()) return;
+    player->setPlat(false);
     bool ignorePlatforms = (now <= dropThroughUntilMs);
 
     QPixmap pm = player->pixmap();
@@ -254,6 +276,7 @@ void Level3Scene::handlePlatformCollisions(qint64 now)
         player->setPos(snapPos);
 
         player->setVerticalVelocity(0.0);
+        player->setPlat(true);
     }
 }
 

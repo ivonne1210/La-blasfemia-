@@ -8,6 +8,8 @@ SOURCES += \
         Level3Scene.cpp \
         actor.cpp \
         arrow.cpp \
+        boomerangprojectile.cpp \
+        boss3.cpp \
         enemy.cpp \
         enemy2.cpp \
         entity.cpp \
@@ -17,6 +19,7 @@ SOURCES += \
         level1scene.cpp \
         main.cpp \
         menuscene.cpp \
+        meteorprojectile.cpp \
         player.cpp \
         player2.cpp \
         player3.cpp
@@ -26,6 +29,8 @@ HEADERS += \
     Level3Scene.h \
     actor.h \
     arrow.h \
+    boomerangprojectile.h \
+    boss3.h \
     enemy.h \
     enemy2.h \
     entity.h \
@@ -34,6 +39,7 @@ HEADERS += \
     item.h \
     level1scene.h \
     menuscene.h \
+    meteorprojectile.h \
     player.h \
     player2.h \
     player3.h

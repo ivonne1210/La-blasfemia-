@@ -18,8 +18,12 @@ public:
     bool isOnGround() const { return onGround; }
     void setGroundY(qreal y) { groundY = y; }
     void setVerticalVelocity(qreal v);
+    void setPlat(bool in){inPlat = in;};
+    int health() const { return m_health; }
+    void setHealth(int h) { m_health = h; }
 
 private:
+    int m_health;
     void updatePhysics(qreal dt);
     void updateAnimation(qreal dt);
     void applyAnimFrame();
@@ -34,21 +38,21 @@ private:
     // Física
     qreal vx = 0.0;
     qreal vy = 0.0;
-    qreal moveSpeed = 220.0;     // px/s
+    qreal moveSpeed = 220.0;
     qreal jumpSpeed = -650.0;    // px/s (negativo porque va hacia arriba)
     qreal gravity   = 1200.0;    // px/s^2
-    qreal groundY   = 780;     // piso por defecto
+    qreal groundY   = 780;
     bool  onGround  = false;
+    bool  inPlat  = false;
 
     // Animación
     AnimState animState   = Idle;
     AnimState prevState   = Idle;
     int       currentFrame = 0;
     qreal     animTimer    = 0.0;
-    qreal     frameDuration = 0.10;  // 100 ms por frame
+    qreal     frameDuration = 0.10;
 
-    int facing = 1;  // 1 = derecha, -1 = izquierda
-
+    int facing = 1;
     QVector<QPixmap> idleFrames;
     QVector<QPixmap> runFrames;
     QVector<QPixmap> jumpFrames;
