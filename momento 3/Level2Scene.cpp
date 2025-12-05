@@ -3,6 +3,7 @@
 #include <QKeyEvent>
 #include <QDateTime>
 #include <QGraphicsRectItem>
+#include <QtMath>
 #include <QRandomGenerator>
 
 Level2Scene::Level2Scene(QObject *parent)
@@ -78,6 +79,19 @@ void Level2Scene::setupScene()
     entities.push_back(player);
     lastPlayerY = 0;
 
+    cloudSprite1.load("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/nube1.png");
+    cloudSprite2.load("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/nube2.png");
+
+    if (!cloudSprite1.isNull()) {
+        QSize newSize(cloudSprite1.width() * 0.7, cloudSprite1.height() * 0.4);
+        cloudSprite1 = cloudSprite1.scaled(newSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    if (!cloudSprite2.isNull()) {
+        QSize newSize(cloudSprite2.width() * 0.6, cloudSprite2.height() * 0.4);
+        cloudSprite2 = cloudSprite2.scaled(newSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+
+    initClouds();   // <-- crear las nubes en el cielo
     // --- Música de fondo ---
     musicPlayer = new QMediaPlayer(this);
     audioOutput = new QAudioOutput(this);
@@ -143,6 +157,7 @@ void Level2Scene::updateEntities(qreal dt)
 
     // 1) Actualizar entidades y limitar al jugador, y saber si hay enemigos
     bool hayEnemigos = false;
+    bool walkingForward = false;
 
     for (Entity* e : entities) {
         if (!e) continue;
@@ -169,6 +184,7 @@ void Level2Scene::updateEntities(qreal dt)
 
             if (player->up) {
                 lastPlayerY += 1;
+                walkingForward = true;
             }
         }
 
@@ -184,6 +200,8 @@ void Level2Scene::updateEntities(qreal dt)
             spawnHorde();
         }
     }
+
+    updateClouds(dt, walkingForward, hayEnemigos);
 
     // 3) Manejo de flechas (borra del vector de forma segura)
     for (int i = 0; i < static_cast<int>(entities.size()); ) {
@@ -498,5 +516,100 @@ void Level2Scene::enemy2Shoot()
     }
 }
 
+void Level2Scene::initClouds()
+{
+    cloudItems.clear();
 
+    // Si no se cargó ninguna nube, no hacemos nada
+    if (cloudSprite1.isNull() && cloudSprite2.isNull())
+        return;
+
+    int numClouds = 4;  // cuántas nubes quieres
+    qreal sceneW = sceneRect().width();
+
+    // Aquí guardamos las X ya usadas
+    std::vector<qreal> usedX;
+    usedX.reserve(numClouds);
+
+    for (int i = 0; i < numClouds; ++i) {
+
+        // Alternar entre cloud1 y cloud2
+        QPixmap sprite;
+        if (!cloudSprite1.isNull() && !cloudSprite2.isNull()) {
+            sprite = (i % 2 == 0) ? cloudSprite1 : cloudSprite2;
+        } else if (!cloudSprite1.isNull()) {
+            sprite = cloudSprite1;
+        } else {
+            sprite = cloudSprite2;
+        }
+
+        if (sprite.isNull())
+            continue;
+
+        qreal x = 0;
+        bool ok = false;
+        const qreal minDist = 100.0;
+        const int maxTries = 50;   // para que no se quede en bucle infinito
+
+        for (int t = 0; t < maxTries && !ok; ++t) {
+            x = QRandomGenerator::global()->bounded(static_cast<int>(sceneW));
+            ok = true;
+
+            for (qreal prevX : usedX) {
+                if (qAbs(x - prevX) < minDist) {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+
+        usedX.push_back(x);
+
+        qreal y = 100 + QRandomGenerator::global()->bounded(120); // zona alta
+
+        auto *cloud = new QGraphicsPixmapItem(sprite);
+        cloud->setZValue(-90); // delante del fondo, detrás del player/HUD
+        cloud->setPos(x, y);
+
+        qreal scale = 0.8 + (QRandomGenerator::global()->bounded(40) / 100.0); // 0.8–1.2
+        cloud->setScale(scale);
+
+        addItem(cloud);
+        cloudItems.push_back(cloud);
+    }
+}
+
+
+void Level2Scene::updateClouds(qreal dt, bool walkingForward, bool hayEnemigos)
+{
+    if (cloudItems.empty())
+        return;
+
+    // Velocidad base de las nubes (para que no estén 100% quietas)
+    const qreal baseSpeed = 10.0;    // px/s
+    // Bonus de velocidad cuando el jugador camina hacia delante y no hay horda
+    const qreal walkSpeed = 60.0;    // px/s
+
+    qreal speed = baseSpeed;
+    if (walkingForward && !hayEnemigos) {
+        speed += walkSpeed;
+    }
+
+    qreal sceneW = sceneRect().width();
+
+    for (QGraphicsPixmapItem *cloud : cloudItems) {
+        if (!cloud) continue;
+
+        QPointF pos = cloud->pos();
+        pos.setX(pos.x() - speed * dt);
+
+        // Si la nube sale por la izquierda, reaparece por la derecha
+        if (pos.x() < -cloud->boundingRect().width()) {
+            pos.setX(sceneW + QRandomGenerator::global()->bounded(100));
+            pos.setY(40 + QRandomGenerator::global()->bounded(120));
+        }
+
+        cloud->setPos(pos);
+    }
+}
 

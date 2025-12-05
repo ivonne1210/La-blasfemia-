@@ -61,4 +61,12 @@ private:
     float nextHordeAt = 100.0f;
     int numeroH = 0;
     int levelTime = 80;
+
+    std::vector<QGraphicsPixmapItem*> cloudItems;
+    QPixmap cloudSprite1;
+    QPixmap cloudSprite2;
+
+    void initClouds();
+    void updateClouds(qreal dt, bool walkingForward, bool hayEnemigos);
+
 };

@@ -21,12 +21,12 @@ GameManager::GameManager(QWidget *parent)
     level3Scene = new Level3Scene(this);
 
     connect(menuScene, &MenuScene::startCampaignRequested, this, [this]() {
-        //setGameScene(level1Scene);
-        loadLevel3();
+        setGameScene(level1Scene);
+        //loadLevel3();
     });
 
     connect(level1Scene, &Level1Scene::levelCompleted, this, [this]() {
-        loadLevel3();
+        loadLevel2();
     });
 
     setGameScene(menuScene);

@@ -15,19 +15,45 @@ Boss3::Boss3(Player3 *player, QGraphicsItem *parent)
 {
     setZValue(20);
 
-    // --- Cargar sprite base (idle) ---
     const QString base = "C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/";
     QVector<QPixmap> idle;
+    QVector<QPixmap> boom;
+    QVector<QPixmap> meteor;
+    QVector<QPixmap> jump;
 
     QPixmap p(base + "boss1.png");
     if (!p.isNull()) {
-        // Escalamos un poco para que no sea gigantesco
         p = p.scaled(160, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         idle.append(p);
     }
 
-    setIdleSprites(idle);   // importante para tener algo visible
+    QPixmap b(base + "boss_espada.png");
+    if (!b.isNull()) {
+        b = b.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        boom.append(b);
+    }
+
+    QPixmap c(base + "boss_meteor.png");
+    if (!c.isNull()) {
+        c = c.scaled(300, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        meteor.append(c);
+    }
+
+    QPixmap j(base + "boss_jump.png");
+    if (!j.isNull()) {
+        j = j.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        jump.append(j);
+    }
+
+    setIdleSprites(idle);
+    setBoomCastSprites(boom);
+    setMeteorCastSprites(meteor);
+    setJumpSprites(jump);
+
+    // Si quieres, castFrames genérico como fallback:
+    // setCastSprites(boom);
 }
+
 
 void Boss3::setIdleSprites(const QVector<QPixmap> &frames)
 {
@@ -45,7 +71,7 @@ void Boss3::setCastSprites(const QVector<QPixmap> &frames)
 
 void Boss3::setJumpSprites(const QVector<QPixmap> &frames)
 {
-    jumpFrames = frames;
+    jump = frames;
 }
 
 void Boss3::updateEntity(qreal dt)
@@ -256,6 +282,7 @@ void Boss3::startBoomerang()
 
     state      = DoBoomerang;
     stateTimer = 0.0;
+    currentCastFrames = &boomCastFrames;
     animState  = ACast;
 
     statsBoomerang.used++;
@@ -285,19 +312,14 @@ void Boss3::startMeteorRain()
 {
     qDebug() << "[Boss] Lluvia de meteoritos";
 
-    // Definimos el punto objetivo (centro del mapa)
     if (scene()) {
         QRectF r = scene()->sceneRect();
         meteorTargetX = (r.left() + r.right()) * 0.5;
-
-        // Si quieres que también cambie en Y:
-        meteorTargetY = 600.0;      // o por ejemplo 600.0 si quieres más arriba
+        meteorTargetY = 500.0;
     } else {
         meteorTargetX = x();
         meteorTargetY = y();
     }
-
-    // AÚN NO activamos la lluvia aquí, solo preparamos el desplazamiento
     meteorActive       = false;
     meteorDuration     = 5.0;
     meteorSpawnTimer   = 0.0;
@@ -305,8 +327,9 @@ void Boss3::startMeteorRain()
     vx = 0.0;
     vy = 0.0;
 
-    state      = MoveToMeteorPos;   // <- aquí empieza el movimiento hacia el centro
+    state      = MoveToMeteorPos;
     stateTimer = 0.0;
+    currentCastFrames = &meteorCastFrames;
     animState  = ACast;
 
     statsMeteor.used++;
@@ -332,9 +355,14 @@ void Boss3::updateAnimation(qreal dt)
     int frameCount = 1;
     switch (animState) {
     case AIdle: frameCount = idleFrames.size(); break;
-    case ACast: frameCount = castFrames.size(); break;
+    case ACast:
+        if (currentCastFrames && !currentCastFrames->isEmpty())
+            frameCount = currentCastFrames->size();
+        else
+            frameCount = castFrames.size();
+        break;
     case AJump:
-    case AFall: frameCount = jumpFrames.size(); break;
+    case AFall: frameCount = jump.size(); break;
     }
 
     if (frameCount <= 0) return;
@@ -356,16 +384,21 @@ void Boss3::applyAnimFrame()
         if (!idleFrames.isEmpty())
             frame = idleFrames[currentFrame % idleFrames.size()];
         break;
+
     case ACast:
-        if (!castFrames.isEmpty())
+        if (currentCastFrames && !currentCastFrames->isEmpty()) {
+            frame = (*currentCastFrames)[currentFrame % currentCastFrames->size()];
+        } else if (!castFrames.isEmpty()) {
             frame = castFrames[currentFrame % castFrames.size()];
-        else if (!idleFrames.isEmpty())
-            frame = idleFrames[0]; // fallback
+        } else if (!idleFrames.isEmpty()) {
+            frame = idleFrames[0];
+        }
         break;
+
     case AJump:
     case AFall:
-        if (!jumpFrames.isEmpty())
-            frame = jumpFrames[currentFrame % jumpFrames.size()];
+        if (!jump.isEmpty())
+            frame = jump[currentFrame % jump.size()];
         else if (!idleFrames.isEmpty())
             frame = idleFrames[0];
         break;
@@ -382,4 +415,15 @@ void Boss3::applyAnimFrame()
 
     setPixmap(frame);
     setOffset(-pixmap().width() / 2.0, -pixmap().height() / 2.0);
+}
+
+
+void Boss3::setBoomCastSprites(const QVector<QPixmap> &frames)
+{
+    boomCastFrames = frames;
+}
+
+void Boss3::setMeteorCastSprites(const QVector<QPixmap> &frames)
+{
+    meteorCastFrames = frames;
 }

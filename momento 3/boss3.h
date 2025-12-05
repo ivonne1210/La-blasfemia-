@@ -37,6 +37,8 @@ public:
     void setCastSprites(const QVector<QPixmap> &frames);
     void setJumpSprites(const QVector<QPixmap> &frames);
 
+    void setBoomCastSprites(const QVector<QPixmap> &frames);
+    void setMeteorCastSprites(const QVector<QPixmap> &frames);
 private:
     // --- Máquina de estados interna ---
     enum State {
@@ -88,8 +90,11 @@ private:
 
     QVector<QPixmap> idleFrames;
     QVector<QPixmap> castFrames;
-    QVector<QPixmap> jumpFrames;
+    QVector<QPixmap> jump;
+    QVector<QPixmap> boomCastFrames;
+    QVector<QPixmap> meteorCastFrames;
 
+    QVector<QPixmap>* currentCastFrames = nullptr;
     // --- Boomerang ---
     //bool boomerangActive = false;
     //BoomerangProjectile *boomerang = nullptr;
