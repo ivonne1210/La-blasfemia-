@@ -131,6 +131,39 @@ void Level3Scene::setupScene()
     healthBar = addPath(barPath, QPen(Qt::NoPen), QBrush(QColor(132,41,30)));
     healthBar->setZValue(1001);
     healthBar->setPos(690,210);
+
+    // ===== BARRA DE VIDA DEL BOSS ABAJO =====
+    bossHpWidth = SCENE_W - 80;          // casi todo el ancho
+    qreal barHeight     = 14.0;
+    qreal marginSide    = 40.0;
+    qreal marginBottom  = 30.0;
+
+    qreal x = marginSide;
+    qreal y = SCENE_H - barHeight - marginBottom;
+
+    // Fondo oscuro
+    bossHpBg = addRect(
+        x, y,
+        bossHpWidth, barHeight,
+        QPen(Qt::NoPen),
+        QBrush(QColor(15, 0, 0, 220))
+        );
+
+    // Barra roja “sangre”
+    QLinearGradient grad(x, y, x, y + barHeight);
+    grad.setColorAt(0.0, QColor(80, 0, 0));    // borde superior
+    grad.setColorAt(0.5, QColor(210, 20, 20)); // rojo brillante
+    grad.setColorAt(1.0, QColor(120, 0, 0));   // borde inferior
+
+    bossHpFg = addRect(
+        x, y,
+        bossHpWidth, barHeight,
+        QPen(Qt::NoPen),
+        QBrush(grad)
+        );
+
+    bossHpBg->setZValue(1000);
+    bossHpFg->setZValue(1001);
 }
 
 void Level3Scene::setView(QGraphicsView *v)
@@ -179,6 +212,7 @@ void Level3Scene::onTick()
 
     updateEntities(dt);
     handlePlatformCollisions(now);
+    handleBossPlayerCollisions(dt);
     updateHud();
     update();
 }
@@ -208,13 +242,6 @@ void Level3Scene::updateEntities(qreal dt)
         player->setPos(pos);
     }
 }
-
-// ------- PLATAFORMAS DE UNA VÍA -------
-// - Si el jugador va hacia ARRIBA: no colisiona nunca con las plataformas.
-// - Si va hacia ABAJO (cayendo) y cruza el borde superior de una plataforma
-//   y no está en modo "dropThrough", lo pegamos encima de la plataforma.
-// - Si mantiene S o flecha abajo: activamos "dropThrough" un ratito y no
-//   aplicamos la colisión de plataformas.
 
 void Level3Scene::handlePlatformCollisions(qint64 now)
 {
@@ -283,6 +310,37 @@ void Level3Scene::handlePlatformCollisions(qint64 now)
 
 void Level3Scene::updateHud()
 {
+
+    if (player) {
+        qreal playerHealthRatio = static_cast<qreal>(player->health()) / 100.0; // 100 es el valor máximo de vida
+
+        // Crear la barra de salud de fondo (si no está actualizada)
+        QPainterPath healthBgPath;
+        healthBgPath.addRoundedRect(0, 0, 200, 20, 5, 5);  // Barra de fondo con un tamaño fijo
+        healthBack->setPath(healthBgPath);  // Actualizamos la barra de fondo (background)
+
+        // Crear la barra de salud visible usando QPainterPath
+        QPainterPath healthPath;
+        healthPath.addRoundedRect(0, 0, 200 * playerHealthRatio, 20, 5, 5);  // 100 es el ancho máximo de la barra
+
+        // Actualizar la barra de salud visible (foreground)
+        healthBar->setPath(healthPath);  // Actualizamos la barra de salud del jugador
+    }
+
+    if (!boss || !bossHpFg)
+        return;
+
+    int hp  = boss->health();
+    int max = boss->maxHealth();
+    if (max <= 0) max = 1;
+
+    qreal ratio = static_cast<qreal>(hp) / static_cast<qreal>(max);
+    if (ratio < 0.0) ratio = 0.0;
+    if (ratio > 1.0) ratio = 1.0;
+
+    QRectF r = bossHpFg->rect();
+    r.setWidth(bossHpWidth * ratio);   // encoger barra
+    bossHpFg->setRect(r);
 }
 
 
@@ -314,6 +372,15 @@ void Level3Scene::keyPressEvent(QKeyEvent *event)
         break;
     }
 
+    case Qt::Key_K:
+        player->setGuard(true);
+        break;
+
+    case Qt::Key_L:
+        player->setAttack(true);
+        break;
+
+
     default:
         QGraphicsScene::keyPressEvent(event);
     }
@@ -344,7 +411,66 @@ void Level3Scene::keyReleaseEvent(QKeyEvent *event)
         downPressed = false;
         break;
 
+    case Qt::Key_K:
+        player->setGuard(false);
+        break;
+
+    case Qt::Key_L:
+        player->setAttack(false);
+        break;
+
     default:
         QGraphicsScene::keyReleaseEvent(event);
     }
 }
+
+void Level3Scene::handleBossPlayerCollisions(qreal /*dt*/)
+{
+    if (!player || !boss) return;
+
+    // 1) Ataque del jugador -> daño al boss
+    if (player->isAttacking() && player->collidesWithItem(boss)) {
+        qint64 now = QDateTime::currentMSecsSinceEpoch();
+        // para que no haga 60 golpes por segundo
+        if (now - lastBossHitByPlayerMs > 1000) {   // 0.25 s de cooldown
+            boss->applyDamage(15);
+            lastBossHitByPlayerMs = now;
+        }
+    }
+
+    // 2) Colisión inelástica cuando el boss hace salto de ataque
+    if (playerStuckToBoss) {
+        // Mientras esté "pegado", seguir al boss con un offset fijo
+        QPointF bp = boss->pos();
+        player->setPos(bp.x() + stuckOffsetX,
+                       bp.y() + stuckOffsetY);
+
+        // Cuando el boss pisa el suelo, soltamos y hacemos daño
+        if (boss->isOnGround()) {
+            playerStuckToBoss = false;
+
+            // lo soltamos a un lado del boss
+            qreal side = (player->x() < boss->x()) ? -1.0 : 1.0;
+            QPointF releasePos = boss->pos();
+            releasePos.setX(releasePos.x() + side * 80.0);
+            player->setPos(releasePos);
+
+            int hp = player->health();
+            hp -= 20;                 // ajusta al gusto
+            if (hp < 0) hp = 0;
+            player->setHealth(hp);
+        }
+        return; // mientras esté pegado, no chequeamos nueva colisión
+    }
+
+    // Si aún no está pegado, miramos si el boss está en salto de ataque
+    if (boss->isJumpAttacking() && player->collidesWithItem(boss)) {
+        playerStuckToBoss = true;
+
+        // offset relativo: ligeramente a un lado y un poco arriba
+        qreal side = (player->x() < boss->x()) ? -1.0 : 1.0;
+        stuckOffsetX = side * 30.0;
+        stuckOffsetY = -20.0;
+    }
+}
+

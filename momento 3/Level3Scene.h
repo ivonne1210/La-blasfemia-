@@ -38,6 +38,7 @@ private:
     void updateEntities(qreal dt);
     void handlePlatformCollisions(qint64 now);
     void updateHud();
+     void handleBossPlayerCollisions(qreal dt);
 
     // --- Estado ---
     Player3 *player;
@@ -64,6 +65,17 @@ private:
     // vida
     QGraphicsPathItem* healthBack;
     QGraphicsPathItem* healthBar;
+
+    QGraphicsRectItem *bossHpBg = nullptr;
+    QGraphicsRectItem *bossHpFg = nullptr;
+    qreal bossHpWidth = 0.0;
+
+    bool  playerStuckToBoss    = false;
+    qreal stuckOffsetX         = 0.0;
+    qreal stuckOffsetY         = 0.0;
+
+    qint64 lastBossHitByPlayerMs = 0;   // cooldown para golpes de espada
+
 };
 
 #endif // LEVEL3SCENE_H

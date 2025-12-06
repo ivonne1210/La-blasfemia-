@@ -14,6 +14,10 @@ public:
     void moveLeft(bool pressed);
     void moveRight(bool pressed);
     void jump(bool pressed);
+    void setGuard(bool pressed);
+    void setAttack(bool pressed);
+    bool isGuarding() const { return guardPressed; }
+    bool isAttacking() const { return attackPressed; }
 
     bool isOnGround() const { return onGround; }
     void setGroundY(qreal y) { groundY = y; }
@@ -28,12 +32,15 @@ private:
     void updateAnimation(qreal dt);
     void applyAnimFrame();
 
-    enum AnimState { Idle, Run, JumpState, FallState };
+    enum AnimState { Idle, Run, JumpState, FallState, Guard, Attack };
 
     // Input
     bool leftPressed  = false;
     bool rightPressed = false;
     bool jumpPressed  = false;
+    bool guardPressed  = false;
+    bool attackPressed = false;
+
 
     // Física
     qreal vx = 0.0;
@@ -54,9 +61,11 @@ private:
 
     int facing = 1;
     QVector<QPixmap> idleFrames;
-    QVector<QPixmap> runFrames;
     QVector<QPixmap> jumpFrames;
+    QVector<QPixmap> runFrames;
     QVector<QPixmap> fallFrames;
+    QVector<QPixmap> guardFrames;
+    QVector<QPixmap> atackFrames;
 };
 
 #endif // PLAYER3_H

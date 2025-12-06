@@ -3,6 +3,7 @@
 #include <QKeyEvent>
 #include <QDateTime>
 #include <QGraphicsRectItem>
+#include "gamemanager.h"
 #include <QRandomGenerator>
 
 Level1Scene::Level1Scene(QObject *parent)
@@ -96,7 +97,8 @@ void Level1Scene::setupScene()
     musicPlayer->setLoops(QMediaPlayer::Infinite);
 }
 
-void Level1Scene::onEnter() {}
+void Level1Scene::onEnter() {
+}
 void Level1Scene::onExit() {
     if (tickTimer) tickTimer->stop();
     if (musicPlayer) musicPlayer->stop();
@@ -311,8 +313,9 @@ void Level1Scene::triggerGameOver()
     gameOverText->setZValue(9999);
 
     addItem(gameOverText);
-}
 
+    emit gameOverOccurred();
+}
 void Level1Scene::createPortalEffect()
 {
     portalActive = true;
@@ -332,3 +335,48 @@ void Level1Scene::goToNextLevel()
 {
     emit levelCompleted();    // NOTIFICAMOS AL MANAGER
 }
+
+void Level1Scene::resetLevel()
+{
+    // Primero, verificamos si el jugador existe antes de intentar resetearlo
+    if (player) {
+        player->setHealth(100);  // Establecer la salud del jugador a 100
+        player->setPos(740, 430);  // Volver a la posición inicial
+    }
+
+    // Eliminar ítems en la escena
+    for (Item* item : items) {
+        if (item) {
+            removeItem(item);  // Eliminar de la escena
+            delete item;       // Liberar memoria
+        }
+    }
+    items.clear();  // Limpiar la lista de ítems
+
+    // Eliminar enemigos de la escena
+    for (Entity* e : entities) {
+        if (e) {
+            removeItem(e);  // Eliminar de la escena
+            delete e;       // Liberar memoria
+        }
+    }
+    entities.clear();  // Limpiar la lista de entidades
+
+    // Eliminar efectos de portal, si existen
+    if (portalEffect) {
+        removeItem(portalEffect);  // Eliminar de la escena
+        delete portalEffect;       // Liberar memoria
+        portalEffect = nullptr;    // Asegurarse de que el puntero esté nulo
+    }
+
+    // Limpiar la barra de salud
+    if (healthBar) {
+        QPainterPath barPath;
+        barPath.addRoundedRect(0, 0, 200, 20, 8, 8);  // Restablecer la barra de salud
+        healthBar->setPath(barPath);                    // Redibujar la barra de salud
+    }
+
+    // Volver a crear ítems y enemigos
+    setupScene();  // Llamar a setupScene() para agregar nuevos ítems y enemigos
+}
+

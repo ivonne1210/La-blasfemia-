@@ -22,9 +22,11 @@ public slots:
     void loadLevel3();
 
 private:
+    void handleGameOver();
+    void connectLevel1Signals(Level1Scene* scene);
+    bool primero1 = true;
     QGraphicsView *view;
     GameScene *currentScene = nullptr;
-
     MenuScene  *menuScene   = nullptr;
     Level1Scene *level1Scene = nullptr;
     Level2Scene *level2Scene = nullptr;

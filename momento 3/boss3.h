@@ -4,10 +4,11 @@
 #include "actor.h"
 #include <QVector>
 #include <QPixmap>
+#include <QGraphicsRectItem>
 
 class Player3;
-//class BoomerangProjectile;
-//class MeteorProjectile;
+class BoomerangProjectile;
+class MeteorProjectile;
 
 class Boss3 : public Actor
 {
@@ -39,6 +40,16 @@ public:
 
     void setBoomCastSprites(const QVector<QPixmap> &frames);
     void setMeteorCastSprites(const QVector<QPixmap> &frames);
+    void onBoomerangReturned(BoomerangProjectile *b);
+
+    int health() const { return m_health; }
+    int maxHealth() const { return m_maxHealth; }
+    void setHealth(int h)  { m_health = qBound(0, h, m_maxHealth); }
+    void applyDamage(int d) { setHealth(m_health - d); }
+
+    // --- Estados para la escena ---
+    bool isOnGround()   const { return onGround; }
+    bool isJumpAttacking() const { return state == DoJump; }
 private:
     // --- Máquina de estados interna ---
     enum State {
@@ -93,11 +104,13 @@ private:
     QVector<QPixmap> jump;
     QVector<QPixmap> boomCastFrames;
     QVector<QPixmap> meteorCastFrames;
+    QPixmap boomerangSprite;
+    QPixmap meteorSprite;
 
     QVector<QPixmap>* currentCastFrames = nullptr;
     // --- Boomerang ---
-    //bool boomerangActive = false;
-    //BoomerangProjectile *boomerang = nullptr;
+    bool boomerangActive = false;
+    BoomerangProjectile *boomerang = nullptr;
 
     // --- MeteorRain ---
     bool meteorActive = false;
@@ -106,6 +119,7 @@ private:
     qreal meteorSpawnTimer = 0.0;
     qreal meteorTargetX = 450.0;
     qreal meteorTargetY = 600.0;
+    QVector<MeteorProjectile*> meteors;
 
     // --- "Cognitivo" (stats de ataques) ---
     struct AttackStats {
@@ -115,6 +129,16 @@ private:
     AttackStats statsBoomerang;
     AttackStats statsJump;
     AttackStats statsMeteor;
+
+    // --- Vida del boss ---
+    int   m_maxHealth = 300;     // aprox lo que dijiste
+    int   m_health    = 300;
+
+    QGraphicsRectItem *hpBg  = nullptr;  // fondo rojo
+    QGraphicsRectItem *hpFg  = nullptr;  // barra verde
+    qreal hpBarWidth = 140.0;            // ancho en píxeles
+
+    void updateHpBar();                  // helper para actualizar la barra
 };
 
 #endif // BOSS3_H

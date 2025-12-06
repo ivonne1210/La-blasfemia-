@@ -13,6 +13,7 @@ class Level1Scene : public GameScene
     Q_OBJECT
 signals:
     void levelCompleted();
+    void gameOverOccurred();
 
 public:
     explicit Level1Scene(QObject *parent = nullptr);
@@ -22,6 +23,7 @@ public:
     void onEnter() override;
     void onExit() override;
     void setView(QGraphicsView *v);
+    void resetLevel();
 
 protected:
     // handle keyboard to control player
@@ -32,6 +34,8 @@ private slots:
     void onTick();
 
 private:
+    bool isFirstEnter = true;
+
     Player *player;
     QTimer *tickTimer;
     qint64 lastTimeMs;

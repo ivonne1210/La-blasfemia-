@@ -1,7 +1,7 @@
 #include "boss3.h"
 #include "player3.h"
-//#include "boomerangprojectile.h"
-//#include "meteorprojectile.h"
+#include "boomerangprojectile.h"
+#include "meteorprojectile.h"
 
 #include <QTransform>
 #include <QtMath>
@@ -45,13 +45,31 @@ Boss3::Boss3(Player3 *player, QGraphicsItem *parent)
         jump.append(j);
     }
 
+    boomerangSprite = QPixmap(base + "espada.png");
+    if (!boomerangSprite.isNull()) {
+        boomerangSprite = boomerangSprite.scaled(90, 90,
+                                                 Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    } else {
+        qDebug() << "No se pudo cargar espada.png";
+    }
+
+    meteorSprite = QPixmap(base + "meteor.png");   // cambia nombre si usas otro archivo
+    if (!meteorSprite.isNull()) {
+        meteorSprite = meteorSprite.scaled(90, 90,
+                                           Qt::KeepAspectRatio,
+                                           Qt::SmoothTransformation);
+    } else {
+        qDebug() << "No se pudo cargar sprite de meteorito";
+    }
+
     setIdleSprites(idle);
     setBoomCastSprites(boom);
     setMeteorCastSprites(meteor);
     setJumpSprites(jump);
 
-    // Si quieres, castFrames genérico como fallback:
-    // setCastSprites(boom);
+    m_maxHealth = 500;
+    m_health    = m_maxHealth;
+
 }
 
 
@@ -79,6 +97,27 @@ void Boss3::updateEntity(qreal dt)
     updatePhysics(dt);
     updateState(dt);
     updateAnimation(dt);
+
+    if (boomerang) {
+        boomerang->updateEntity(dt);
+    }
+
+    for (int i = meteors.size() - 1; i >= 0; --i) {
+        MeteorProjectile *m = meteors[i];
+        if (!m) {
+            meteors.removeAt(i);
+            continue;
+        }
+
+        m->updateEntity(dt);
+
+        if (m->isFinished()) {
+            if (m->scene())
+                m->scene()->removeItem(m);
+            delete m;
+            meteors.removeAt(i);
+        }
+    }
 }
 
 /* ===================== FÍSICA ===================== */
@@ -214,7 +253,7 @@ void Boss3::updateState(qreal dt)
         break;
 
     case DoBoomerang:
-        if (stateTimer >= 1.5) {
+        if (!boomerangActive) {
             finishAttack();
         }
         break;
@@ -226,14 +265,47 @@ void Boss3::updateState(qreal dt)
         break;
 
     case DoMeteorRain:
-        // 🔹 Versión simple solo para que compile y pruebes física.
-        // No spawneamos nada todavía.
         if (!meteorActive) {
             finishAttack();
             break;
         }
 
-        meteorDuration -= dt;
+        meteorDuration   -= dt;
+        meteorSpawnTimer += dt;
+
+        if (scene() && meteorSpawnTimer >= meteorSpawnInterval) {
+            meteorSpawnTimer = 0.0;
+
+            QRectF r = scene()->sceneRect();
+            qreal margin = 40.0;
+            qreal xMin = r.left()  + margin;
+            qreal xMax = r.right() - margin;
+
+            // X aleatoria en todo el ancho del mapa
+            // xMin y xMax son qreal, pero bounded quiere enteros
+            int randX = QRandomGenerator::global()->bounded(
+                static_cast<int>(xMin),
+                static_cast<int>(xMax)
+                );
+            qreal x = static_cast<qreal>(randX);
+
+            // Nacen un poquito por encima de la pantalla
+            qreal y = r.top() - 80.0;
+
+            QPixmap sprite = meteorSprite;
+            if (sprite.isNull() && !meteorCastFrames.isEmpty())
+                sprite = meteorCastFrames[0];
+            else if (sprite.isNull() && !idleFrames.isEmpty())
+                sprite = idleFrames[0];
+
+            auto *m = new MeteorProjectile(this, playerRef, sprite);
+            m->setZValue(zValue() - 1);
+            m->setPos(x, y);
+            scene()->addItem(m);
+            meteors.append(m);
+        }
+
+        // Cuando se acabe la ventana de 5 s de lluvia, terminamos el ataque
         if (meteorDuration <= 0.0) {
             meteorActive = false;
             finishAttack();
@@ -277,8 +349,34 @@ void Boss3::startBoomerang()
 {
     qDebug() << "[Boss] Ataque Boomerang";
 
-    // De momento no instanciamos proyectil
+    if (boomerangActive) {
+        // Ya hay uno volando, por seguridad no disparamos otro
+        return;
+    }
+
+    if (!scene() || !playerRef) {
+        // Si no hay escena o jugador, salimos a Recover
+        state      = Recover;
+        stateTimer = 0.0;
+        animState  = AIdle;
+        return;
+    }
+
     vx = 0.0;
+
+    QPixmap sprite = boomerangSprite;
+    if (sprite.isNull() && !boomCastFrames.isEmpty())
+        sprite = boomCastFrames[0];
+    else if (sprite.isNull() && !idleFrames.isEmpty())
+        sprite = idleFrames[0];
+
+    boomerang = new BoomerangProjectile(this, playerRef, sprite);
+    boomerang->setZValue(zValue() + 1);
+    boomerang->setPos(pos());
+
+    scene()->addItem(boomerang);
+
+    boomerangActive = true;
 
     state      = DoBoomerang;
     stateTimer = 0.0;
@@ -287,6 +385,7 @@ void Boss3::startBoomerang()
 
     statsBoomerang.used++;
 }
+
 
 void Boss3::startJumpAttack()
 {
@@ -300,7 +399,7 @@ void Boss3::startJumpAttack()
         vx = 0.0;
     }
 
-    vy = -1000.0;   // salto hacia arriba
+    vy = -1000.0;
     state      = DoJump;
     stateTimer = 0.0;
     animState  = AJump;
@@ -426,4 +525,34 @@ void Boss3::setBoomCastSprites(const QVector<QPixmap> &frames)
 void Boss3::setMeteorCastSprites(const QVector<QPixmap> &frames)
 {
     meteorCastFrames = frames;
+}
+
+void Boss3::onBoomerangReturned(BoomerangProjectile *b)
+{
+    if (boomerang == b) {
+        boomerangActive = false;
+
+        if (b->scene()) {
+            b->scene()->removeItem(b);
+        }
+        delete b;
+        boomerang = nullptr;
+    }
+}
+
+void Boss3::updateHpBar()
+{
+    if (!hpFg) return;
+
+    qreal ratio = 0.0;
+    if (m_maxHealth > 0)
+        ratio = static_cast<qreal>(m_health) / static_cast<qreal>(m_maxHealth);
+
+    if (ratio < 0.0) ratio = 0.0;
+    if (ratio > 1.0) ratio = 1.0;
+
+    // Ajustamos solo el ancho de la barra verde
+    QRectF r = hpFg->rect();
+    r.setWidth(hpBarWidth * ratio);
+    hpFg->setRect(r);
 }
