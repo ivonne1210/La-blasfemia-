@@ -5,7 +5,7 @@
 using namespace std;
 
 int lastDirection;
-
+//ñ
 Player::Player(QGraphicsItem *parent)
     : Actor(parent),
     left(false), right(false), up(false), down(false),

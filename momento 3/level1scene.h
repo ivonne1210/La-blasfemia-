@@ -7,7 +7,7 @@
 #include <QGraphicsView>
 #include <QMediaPlayer>
 #include <QAudioOutput>
-
+//ñ
 class Level1Scene : public GameScene
 {
     Q_OBJECT
@@ -26,7 +26,6 @@ public:
     void resetLevel();
 
 protected:
-    // handle keyboard to control player
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
 

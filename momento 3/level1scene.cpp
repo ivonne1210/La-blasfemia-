@@ -5,7 +5,7 @@
 #include <QGraphicsRectItem>
 #include "gamemanager.h"
 #include <QRandomGenerator>
-
+//
 Level1Scene::Level1Scene(QObject *parent)
     : GameScene(parent), player(nullptr), tickTimer(new QTimer(this)), lastTimeMs(0)
 {
@@ -22,7 +22,6 @@ Level1Scene::~Level1Scene()
 {
     tickTimer->stop();
 }
-
 void Level1Scene::setupScene()
 {
     QPixmap map("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back1.png");
