@@ -14,6 +14,8 @@ class Level2Scene : public GameScene
     Q_OBJECT
 signals:
     void levelCompleted();
+    void gameOverOccurred();
+
 public:
     explicit Level2Scene(QObject *parent = nullptr);
     QGraphicsView *viewRef = nullptr;

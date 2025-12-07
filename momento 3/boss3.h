@@ -23,17 +23,10 @@ public:
 
     void updateEntity(qreal dt) override;
 
-    // Física básica
     void setGroundY(qreal y) { groundY = y; }
 
-    // Llamado por proyectiles cuando golpean al jugador
     void registerPlayerHit(AttackType type);
 
-    // Llamado por el boomerang cuando vuelve al boss
-    //void onBoomerangReturned(BoomerangProjectile *b);
-
-    // Para animaciones (idle / cast / salto / daño)
-    // luego las llenamos con tus sprites
     void setIdleSprites(const QVector<QPixmap> &frames);
     void setCastSprites(const QVector<QPixmap> &frames);
     void setJumpSprites(const QVector<QPixmap> &frames);

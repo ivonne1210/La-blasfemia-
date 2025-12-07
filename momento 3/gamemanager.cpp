@@ -19,22 +19,21 @@ GameManager::GameManager(QWidget *parent)
 
     // Escenas iniciales
     menuScene = new MenuScene(this);
+
     level1Scene = new Level1Scene(this);
-    connectLevel1Signals(level1Scene);   // <-- conectar señales aquí
+    connectLevel1Signals(level1Scene);
+
     level2Scene = new Level2Scene(this);
+    connectLevel2Signals(level2Scene);
+
     level3Scene = new Level3Scene(this);
 
     // Conexión del menú
     connect(menuScene, &MenuScene::startCampaignRequested, this, [this]() {
         // Siempre crear un nuevo Level1Scene al iniciar campaña
         level1Scene = new Level1Scene(this);
-        connectLevel1Signals(level1Scene);   // <-- reconectar señales
+        connectLevel1Signals(level1Scene);
         setGameScene(level1Scene);
-    });
-
-    // Conexiones de niveles 2 y 3
-    connect(level2Scene, &Level2Scene::levelCompleted, this, [this]() {
-        loadLevel3();
     });
 
     setGameScene(menuScene);
@@ -42,21 +41,48 @@ GameManager::GameManager(QWidget *parent)
 
 GameManager::~GameManager() {}
 
-// Función auxiliar para conectar señales de Level1Scene
+//
+// Conexiones de Level1
+//
 void GameManager::connectLevel1Signals(Level1Scene* scene) {
     connect(scene, &Level1Scene::gameOverOccurred, this, [this]() {
-        handleGameOver();
+        handleGameOverLevel1();
     });
     connect(scene, &Level1Scene::levelCompleted, this, [this]() {
         loadLevel2();
     });
 }
 
+//
+// Conexiones de Level2
+//
+void GameManager::connectLevel2Signals(Level2Scene* scene) {
+    connect(scene, &Level2Scene::gameOverOccurred, this, [this]() {
+        handleGameOverLevel2();
+    });
+    connect(scene, &Level2Scene::levelCompleted, this, [this]() {
+        loadLevel3();
+    });
+}
+
+void GameManager::connectLevel3Signals(Level3Scene* scene) {
+    connect(scene, &Level3Scene::gameOverOccurred, this, [this]() {
+        handleGameOverLevel3();
+    });
+    connect(scene, &Level3Scene::finished, this, [this]() {
+        //creditos
+        loadCredits();
+    });
+}
+
+//
+// Cambio de escena
+//
 void GameManager::setGameScene(GameScene *scene) {
     if (!scene || scene == currentScene) return;
 
     if (currentScene) {
-        currentScene->onExit(); // limpiar escena anterior
+        currentScene->onExit();
     }
 
     currentScene = scene;
@@ -66,30 +92,65 @@ void GameManager::setGameScene(GameScene *scene) {
         l1->setView(view);
         l1->onEnter();
     }
-    if (auto lvl2 = dynamic_cast<Level2Scene*>(scene)) {
-        lvl2->setView(view);
-        lvl2->onEnter();
+    if (auto l2 = dynamic_cast<Level2Scene*>(scene)) {
+        l2->setView(view);
+        l2->onEnter();
     }
-    if (auto lvl3 = dynamic_cast<Level3Scene*>(scene)) {
-        lvl3->setView(view);
-        lvl3->onEnter();
+    if (auto l3 = dynamic_cast<Level3Scene*>(scene)) {
+        l3->setView(view);
+        l3->onEnter();
     }
 
     view->setFocus();
 }
 
+//
+// Cargar niveles
+//
 void GameManager::loadLevel2() {
+    level2Scene = new Level2Scene(this);
+    connectLevel2Signals(level2Scene);
     setGameScene(level2Scene);
 }
 
 void GameManager::loadLevel3() {
+    level3Scene = new Level3Scene(this);
+    connectLevel3Signals(level3Scene);
     setGameScene(level3Scene);
 }
 
-void GameManager::handleGameOver() {
-    qDebug() << "Game Over Occurred - Handling Game Over...";
-    // Regresar al menú después de 3 segundos
+void GameManager::handleGameOverLevel1() {
     QTimer::singleShot(3000, this, [this]() {
         setGameScene(menuScene);
     });
 }
+
+void GameManager::handleGameOverLevel2() {
+    QTimer::singleShot(3000, this, [this]() {
+        level1Scene = new Level1Scene(this);
+        connectLevel1Signals(level1Scene);
+
+        setGameScene(menuScene);
+    });
+}
+
+void GameManager::handleGameOverLevel3() {
+    QTimer::singleShot(3000, this, [this]() {
+        level1Scene = new Level1Scene(this);
+        connectLevel1Signals(level1Scene);
+
+        setGameScene(menuScene);
+    });
+}
+
+void GameManager::loadCredits()
+{
+    creditsScene = new CreditsScene(this);
+    connect(creditsScene, &CreditsScene::returnToMenu, this, [this]() {
+        setGameScene(menuScene);
+    });
+    setGameScene(creditsScene);
+}
+
+
+

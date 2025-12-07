@@ -17,6 +17,10 @@ class Entity;
 class Level3Scene : public GameScene
 {
     Q_OBJECT
+signals:
+    void finished();
+    void gameOverOccurred();
+
 public:
     explicit Level3Scene(QObject *parent = nullptr);
     ~Level3Scene() override;
@@ -76,6 +80,9 @@ private:
 
     qint64 lastBossHitByPlayerMs = 0;   // cooldown para golpes de espada
 
+    void triggerGameOver();
+    void goToFinish();
+    QGraphicsTextItem* gameOverText = nullptr;
 };
 
 #endif // LEVEL3SCENE_H

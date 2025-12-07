@@ -4,6 +4,7 @@ QT += core gui widgets
 QT += multimedia
 
 SOURCES += \
+        CreditsScene.cpp \
         Level2Scene.cpp \
         Level3Scene.cpp \
         actor.cpp \
@@ -25,6 +26,7 @@ SOURCES += \
         player3.cpp
 
 HEADERS += \
+    CreditsScene.h \
     Level2Scene.h \
     Level3Scene.h \
     actor.h \

@@ -9,8 +9,8 @@ int lastDirection;
 Player::Player(QGraphicsItem *parent)
     : Actor(parent),
     left(false), right(false), up(false), down(false),
-    m_speed(1800),
-    m_health(10),
+    m_speed(180),
+    m_health(100),
     currentFrame(0),
     invincibleTime(0)
 {

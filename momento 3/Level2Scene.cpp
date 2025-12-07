@@ -414,6 +414,8 @@ void Level2Scene::triggerGameOver()
     gameOverText->setZValue(9999);
 
     addItem(gameOverText);
+
+    emit gameOverOccurred();
 }
 
 void Level2Scene::goToNextLevel()

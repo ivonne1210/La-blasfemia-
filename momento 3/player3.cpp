@@ -24,18 +24,6 @@ Player3::Player3(QGraphicsItem *parent)
             idleFrames.append(p);
         }
     }
-    //idleFrames.append(QPixmap(base + "idle_1.png"));
-
-    // Run
-    //runFrames.append(QPixmap(base + "run_0.png"));
-    //runFrames.append(QPixmap(base + "run_1.png"));
-    //runFrames.append(QPixmap(base + "run_2.png"));
-    //runFrames.append(QPixmap(base + "run_3.png"));
-
-    // Jump
-    //jumpFrames.append(QPixmap(base + "jump_0.png"));
-
-    // Fall
     {
         QPixmap p(base + "player3_2.png");
         if (!p.isNull()) {

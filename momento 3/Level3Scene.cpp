@@ -29,7 +29,7 @@ void Level3Scene::setupScene()
     const int SCENE_H = 900;
     setSceneRect(0, 0, SCENE_W, SCENE_H);
 
-    QPixmap bg("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back3.png"); // ⬅️ pon tu ruta
+    QPixmap bg("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/back3.png");
     if (bg.isNull()) {
         setBackgroundBrush(Qt::black);
     } else {
@@ -53,8 +53,8 @@ void Level3Scene::setupScene()
     entities.push_back(player);
 
     boss = new Boss3(player);
-    boss->setPos(700, 780);       // esquina derecha, por ejemplo
-    boss->setGroundY(750);        // suelo del jefe
+    boss->setPos(700, 780);
+    boss->setGroundY(750);
     addItem(boss);
     entities.push_back(boss);
 
@@ -62,7 +62,6 @@ void Level3Scene::setupScene()
     const qreal PLATFORM_SCALE = 0.28;
     const qreal PLATFORM_SCALE1 = 0.1;
 
-    // Plataforma 2
     Item *plat2 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/platform.png");
     plat2->setScale(PLATFORM_SCALE);
     plat2->setPos(100, 600);
@@ -70,7 +69,6 @@ void Level3Scene::setupScene()
     plat2->setZValue(-99);
     platforms.push_back(plat2);
 
-    // Plataforma 3
     Item *plat3 = new Item("C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/platform1.png");
     plat3->setScale(PLATFORM_SCALE1);
     plat3->setPos(425, 675);
@@ -112,7 +110,7 @@ void Level3Scene::setupScene()
     musicPlayer->setAudioOutput(audioOutput);
 
     musicPlayer->setSource(QUrl::fromLocalFile(
-        "C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/Lvl1S.mp3"    // ⬅️ cambia ruta
+        "C:/Users/kevin/OneDrive/Escritorio/info2/la blasfemia/momento 2/sprites/Lvl3S.mp3"
         ));
     audioOutput->setVolume(0.8);
     musicPlayer->setLoops(QMediaPlayer::Infinite);
@@ -133,7 +131,7 @@ void Level3Scene::setupScene()
     healthBar->setPos(690,210);
 
     // ===== BARRA DE VIDA DEL BOSS ABAJO =====
-    bossHpWidth = SCENE_W - 80;          // casi todo el ancho
+    bossHpWidth = SCENE_W - 80;
     qreal barHeight     = 14.0;
     qreal marginSide    = 40.0;
     qreal marginBottom  = 30.0;
@@ -141,7 +139,6 @@ void Level3Scene::setupScene()
     qreal x = marginSide;
     qreal y = SCENE_H - barHeight - marginBottom;
 
-    // Fondo oscuro
     bossHpBg = addRect(
         x, y,
         bossHpWidth, barHeight,
@@ -151,9 +148,9 @@ void Level3Scene::setupScene()
 
     // Barra roja “sangre”
     QLinearGradient grad(x, y, x, y + barHeight);
-    grad.setColorAt(0.0, QColor(80, 0, 0));    // borde superior
-    grad.setColorAt(0.5, QColor(210, 20, 20)); // rojo brillante
-    grad.setColorAt(1.0, QColor(120, 0, 0));   // borde inferior
+    grad.setColorAt(0.0, QColor(80, 0, 0));
+    grad.setColorAt(0.5, QColor(210, 20, 20));
+    grad.setColorAt(1.0, QColor(120, 0, 0));
 
     bossHpFg = addRect(
         x, y,
@@ -215,6 +212,10 @@ void Level3Scene::onTick()
     handleBossPlayerCollisions(dt);
     updateHud();
     update();
+
+    if(player->health()<=0){
+        triggerGameOver();
+    }
 }
 
 void Level3Scene::updateEntities(qreal dt)
@@ -341,6 +342,10 @@ void Level3Scene::updateHud()
     QRectF r = bossHpFg->rect();
     r.setWidth(bossHpWidth * ratio);   // encoger barra
     bossHpFg->setRect(r);
+
+    if (boss->health()<=0){
+        goToFinish();
+    }
 }
 
 
@@ -457,7 +462,8 @@ void Level3Scene::handleBossPlayerCollisions(qreal /*dt*/)
 
             int hp = player->health();
             hp -= 20;                 // ajusta al gusto
-            if (hp < 0) hp = 0;
+            if (hp < 0) hp = 0;{
+            }
             player->setHealth(hp);
         }
         return; // mientras esté pegado, no chequeamos nueva colisión
@@ -472,5 +478,34 @@ void Level3Scene::handleBossPlayerCollisions(qreal /*dt*/)
         stuckOffsetX = side * 30.0;
         stuckOffsetY = -20.0;
     }
+}
+
+void Level3Scene::triggerGameOver()
+{
+    gameOver = true;
+
+    tickTimer->stop();  // Detener actualizaciones
+    if (musicPlayer) musicPlayer->stop();
+
+    // Crear texto "GAME OVER"
+    gameOverText = new QGraphicsTextItem("GAME OVER");
+    gameOverText->setDefaultTextColor(QColor(132,41,30));
+    gameOverText->setFont(QFont("Old English Text MT", 64, QFont::Bold));
+
+    // Centrar el texto respecto a la cámara
+    QPointF center = viewRef->mapToScene(
+        viewRef->viewport()->rect().center()
+        );
+
+    gameOverText->setPos(center.x() - 300, center.y() - 100);
+    gameOverText->setZValue(9999);
+
+    addItem(gameOverText);
+
+    emit gameOverOccurred();
+}
+
+void Level3Scene::goToFinish(){
+    emit finished();
 }
 

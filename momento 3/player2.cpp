@@ -10,7 +10,7 @@ Player2::Player2(QGraphicsItem *parent)
     : Actor(parent),
     left(false), right(false), up(false), down(false),
     m_speed(180),
-    m_health(1000),
+    m_health(100),
     currentFrame(0),
     invincibleTime(0)
 {
